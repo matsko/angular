@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<title>5 Animation Example</title>
+<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.5/material.indigo-pink.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<style>
+  body {
+    padding: 50px;
+  }
+  button {
+    position: relative;
+    overflow: hidden;
+    width: 200px;
+    height: 50px;
+  }
+  .ripple {
+    background: red;
+    position: absolute;
+    border-radius: 50%;
+    transition-timing-function: linear;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>
+<body>
+  <animate-app>Loading...</animate-app>
+  $SCRIPTS$
+</body>
+</html>

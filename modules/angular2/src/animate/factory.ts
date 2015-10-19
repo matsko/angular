@@ -67,6 +67,7 @@ export class AnimationQueryContext {
 
   trigger(element, event, data) {
     var callback = data['callback'] || noopTrue;
+    data['collectedEvents'] = data['collectedEvents'] || [];
     touchCallback(callback);
 
     if (this.isSelectorMatch(element)) {
@@ -99,7 +100,7 @@ export class AnimationQueryContext {
     if (this._registeredEvents[event]) return this;
 
     this._container.addEventListener(event, (e) => {
-      var eventData = e.detail || {};
+      var eventData = (e instanceof CustomEvent && e.detail) || {};
       touchCallback(eventData['callback']);
       var callback = eventData['callback'] || function() { };
 

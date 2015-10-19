@@ -448,6 +448,16 @@ export function wait(time) {
   });
 }
 
+export function waitDelay(time) {
+  return {
+    start: function () {
+      return new Promise((resolve) => {
+        setTimeout(resolve, time);
+      });
+    }
+  };
+}
+
 export function query(selector, factory) {
   return {
     immediate: factory.immediate,
