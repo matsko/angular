@@ -147,6 +147,10 @@ export class AnimationQueryContext {
     return this.on("ng-leave", callback, noopTrue);
   }
 
+  onClick(callback): AnimationQueryContext {
+    return this.on("click", callback, noopTrue);
+  }
+
   trackClick(): void {
     document.body.addEventListener('mousedown', (event) => {
       this._lastClickEvent = event;

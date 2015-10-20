@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<title>5 Animation Example</title>
+<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.5/material.indigo-pink.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<style>
+  body {
+    padding: 50px;
+  }
+  tabs {
+    height: 300px;
+    width: 600px;
+    border: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+  }
+  tabs > header {
+    border-bottom: 1px solid #ddd;
+    overflow: hidden;
+    height: 48px;
+  }
+  tabs > header > a {
+    float: left;
+    width: 100px;
+    line-height: 48px;
+    cursor: pointer;
+    display: block;
+    text-align: center;
+  }
+  tabs > .tabs-content {
+    flex: 1;
+    position: relative;
+  }
+  tabs > .tabs-content > tab {
+    padding: 15px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+  }
+  tabs > header {
+    position: relative;
+  }
+  tabs > header > ink-bar {
+    position: absolute;
+    pointer-events: none;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: deeppink;
+    bottom: 0;
+  }
+  tabs > header > ink-bar.left {
+    transition: left 0.45s ease-out, right 0.45s ease-out 0.2s;
+  }
+  tabs > header > ink-bar.right {
+    transition: left 0.45s ease-out 0.2s, right 0.45s ease-out;
+  }
+</style>
+<body>
+  <animate-app>Loading...</animate-app>
+  $SCRIPTS$
+</body>
+</html>
