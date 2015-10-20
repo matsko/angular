@@ -1,7 +1,9 @@
-<header>
-  <a *ng-for="#tab of tabs" (click)="selectTab(tab)">{{tab.title}}</a>
-  <ink-bar [attr.data-index]="index"></ink-bar>
-</header>
-<div class="tabs-content">
-  <ng-content></ng-content>
+<div [attr.data-index]="index">
+  <header>
+    <a *ng-for="#tab of tabs" (click)="selectTab(tab)">{{tab.title}}</a>
+    <ink-bar></ink-bar>
+  </header>
+  <div class="tabs-content">
+    <ng-content></ng-content>
+  </div>
 </div>
