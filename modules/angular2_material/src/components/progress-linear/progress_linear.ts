@@ -1,24 +1,33 @@
-import {Component, onChange, View, Attribute} from 'angular2/angular2';
+import {Component, View, ViewEncapsulation, Attribute, OnChanges} from 'angular2/angular2';
+import {CONST} from 'angular2/src/core/facade/lang';
+import {isPresent, isBlank} from 'angular2/src/core/facade/lang';
+import {Math} from 'angular2/src/core/facade/math';
 
-import {isPresent, isBlank} from 'angular2/src/facade/lang';
-import {Math} from 'angular2/src/facade/math';
+/** Different display / behavior modes for progress-linear. */
+@CONST()
+class ProgressMode {
+  @CONST() static DETERMINATE = 'determinate';
+  @CONST() static INDETERMINATE = 'indeterminate';
+  @CONST() static BUFFER = 'buffer';
+  @CONST() static QUERY = 'query';
+}
 
 @Component({
   selector: 'md-progress-linear',
-  lifecycle: [onChange],
-  properties: ['value', 'bufferValue'],
+  inputs: ['value', 'bufferValue'],
   host: {
-    '[attr.role]': '"progressbar"',
-    '[attr.aria-valuemin]': '"0"',
-    '[attr.aria-valuemax]': '"100"',
+    'role': 'progressbar',
+    'aria-valuemin': '0',
+    'aria-valuemax': '100',
     '[attr.aria-valuenow]': 'value'
   }
 })
 @View({
-  templateUrl: 'angular2_material/src/components/progress-linear/progress_linear.html',
-  directives: []
+  templateUrl: 'package:angular2_material/src/components/progress-linear/progress_linear.html',
+  directives: [],
+  encapsulation: ViewEncapsulation.None
 })
-export class MdProgressLinear {
+export class MdProgressLinear implements OnChanges {
   /** Value for the primary bar. */
   value_: number;
 
@@ -34,11 +43,11 @@ export class MdProgressLinear {
   /** CSS `transform` property applied to the secondary bar. */
   secondaryBarTransform: string;
 
-  constructor(@Attribute('md-mode') mode: string) {
+  constructor(@Attribute('mode') mode: string) {
     this.primaryBarTransform = '';
     this.secondaryBarTransform = '';
 
-    this.mode = isPresent(mode) ? mode : Mode.DETERMINATE;
+    this.mode = isPresent(mode) ? mode : ProgressMode.DETERMINATE;
   }
 
   get value() {
@@ -51,16 +60,17 @@ export class MdProgressLinear {
     }
   }
 
-  onChange(_) {
+  onChanges(_) {
     // If the mode does not use a value, or if there is no value, do nothing.
-    if (this.mode == Mode['QUERY'] || this.mode == Mode['INDETERMINATE'] || isBlank(this.value)) {
+    if (this.mode == ProgressMode.QUERY || this.mode == ProgressMode.INDETERMINATE ||
+        isBlank(this.value)) {
       return;
     }
 
     this.primaryBarTransform = this.transformForValue(this.value);
 
     // The bufferValue is only used in buffer mode.
-    if (this.mode == Mode['BUFFER']) {
+    if (this.mode == ProgressMode.BUFFER) {
       this.secondaryBarTransform = this.transformForValue(this.bufferValue);
     }
   }
@@ -68,8 +78,8 @@ export class MdProgressLinear {
   /** Gets the CSS `transform` property for a progress bar based on the given value (0 - 100). */
   transformForValue(value) {
     // TODO(jelbourn): test perf gain of caching these, since there are only 101 values.
-    var scale = value / 100;
-    var translateX = (value - 100) / 2;
+    let scale = value / 100;
+    let translateX = (value - 100) / 2;
     return `translateX(${translateX}%) scale(${scale}, 1)`;
   }
 
@@ -78,11 +88,3 @@ export class MdProgressLinear {
     return Math.max(0, Math.min(100, v));
   }
 }
-
-/** @enum {string} Progress-linear modes. */
-var Mode = {
-  'DETERMINATE': 'determinate',
-  'INDETERMINATE': 'indeterminate',
-  'BUFFER': 'buffer',
-  'QUERY': 'query'
-};

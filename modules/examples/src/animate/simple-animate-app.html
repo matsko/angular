@@ -1,0 +1,18 @@
+<div class="stage">
+  <div class="apps">
+    <notifications></notifications>
+
+    <a href="#" *ng-for="#app of apps" class="app">
+      <img [src]="app.icon" />
+    </a>
+  </div>
+
+  <div class="line">
+    <div draggable="true" (drag)="onDrag($event)" (dragstart)="onDragStart($event)" class="box start-box"></div>
+    <div (drop)="onDragDrop($event)"
+         (dropenter)="onDropEnter($event)"
+         (dropleave)="onDropEnter($event)"
+         [class.active]="activeDrop || dropComplete"
+         class="box end-box"></div>
+  </div>
+</div>

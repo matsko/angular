@@ -1,5 +1,4 @@
-import {EventEmitter, ObservableWrapper} from 'angular2/src/facade/async';
-import {List} from 'angular2/src/facade/collection';
+import {EventEmitter, ObservableWrapper} from 'angular2/src/core/facade/async';
 import {LocationStrategy} from 'angular2/src/router/location_strategy';
 
 
@@ -7,11 +6,11 @@ export class MockLocationStrategy extends LocationStrategy {
   internalBaseHref: string = '/';
   internalPath: string = '/';
   internalTitle: string = '';
-  urlChanges: List<string> = [];
+  urlChanges: string[] = [];
   _subject: EventEmitter = new EventEmitter();
   constructor() { super(); }
 
-  simulatePopState(url): void {
+  simulatePopState(url: string): void {
     this.internalPath = url;
     ObservableWrapper.callNext(this._subject, null);
   }
@@ -28,7 +27,17 @@ export class MockLocationStrategy extends LocationStrategy {
     this.urlChanges.push(url);
   }
 
-  onPopState(fn): void { ObservableWrapper.subscribe(this._subject, fn); }
+  onPopState(fn: (value: any) => void): void { ObservableWrapper.subscribe(this._subject, fn); }
 
   getBaseHref(): string { return this.internalBaseHref; }
+
+  back(): void {
+    if (this.urlChanges.length > 0) {
+      this.urlChanges.pop();
+      var nextUrl = this.urlChanges.length > 0 ? this.urlChanges[this.urlChanges.length - 1] : '';
+      this.simulatePopState(nextUrl);
+    }
+  }
+
+  forward(): void { throw 'not implemented'; }
 }

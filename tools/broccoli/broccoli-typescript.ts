@@ -1,10 +1,10 @@
 /// <reference path="../typings/node/node.d.ts" />
-/// <reference path="../../node_modules/typescript/bin/typescript.d.ts" />
+/// <reference path="../../node_modules/typescript/lib/typescript.d.ts" />
 
 import fs = require('fs');
 import fse = require('fs-extra');
 import path = require('path');
-import ts = require('typescript');
+import * as ts from 'typescript';
 import {wrapDiffingPlugin, DiffingBroccoliPlugin, DiffResult} from './diffing-broccoli-plugin';
 
 
@@ -19,10 +19,10 @@ const FS_OPTS = {
  * Broccoli plugin that implements incremental Typescript compiler.
  *
  * It instantiates a typescript compiler instance that keeps all the state about the project and
- * can reemit only the files that actually changed.
+ * can re-emit only the files that actually changed.
  *
  * Limitations: only files that map directly to the changed source file via naming conventions are
- * reemited. This primarily affects code that uses `const enum`s, because changing the enum value
+ * re-emitted. This primarily affects code that uses `const enum`s, because changing the enum value
  * requires global emit, which can affect many files.
  */
 class DiffingTSCompiler implements DiffingBroccoliPlugin {
@@ -41,6 +41,8 @@ class DiffingTSCompiler implements DiffingBroccoliPlugin {
     this.tsOpts = Object.create(options);
     this.tsOpts.outDir = this.cachePath;
     this.tsOpts.target = (<any>ts).ScriptTarget[options.target];
+    this.tsOpts.module = (<any>ts).ModuleKind[options.module];
+    this.tsOpts.experimentalDecorators = true;
     this.rootFilePaths = options.rootFilePaths ? options.rootFilePaths.splice(0) : [];
     this.tsServiceHost = new CustomLanguageServiceHost(this.tsOpts, this.rootFilePaths,
                                                        this.fileRegistry, this.inputPath);
@@ -216,9 +218,10 @@ class CustomLanguageServiceHost implements ts.LanguageServiceHost {
    * not worth the potential issues with stale cache records.
    */
   getScriptSnapshot(tsFilePath: string): ts.IScriptSnapshot {
-    let absoluteTsFilePath = (tsFilePath == this.defaultLibFilePath) ?
-                                 tsFilePath :
-                                 path.join(this.treeInputPath, tsFilePath);
+    let absoluteTsFilePath =
+        (tsFilePath == this.defaultLibFilePath || path.isAbsolute(tsFilePath)) ?
+            tsFilePath :
+            path.join(this.treeInputPath, tsFilePath);
 
     if (!fs.existsSync(absoluteTsFilePath)) {
       // TypeScript seems to request lots of bogus paths during import path lookup and resolution,
@@ -231,9 +234,7 @@ class CustomLanguageServiceHost implements ts.LanguageServiceHost {
 
   getCurrentDirectory(): string { return this.currentDirectory; }
 
-
   getCompilationSettings(): ts.CompilerOptions { return this.compilerOptions; }
-
 
   getDefaultLibFileName(options: ts.CompilerOptions): string {
     // ignore options argument, options should not change during the lifetime of the plugin

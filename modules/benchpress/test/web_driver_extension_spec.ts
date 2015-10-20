@@ -11,9 +11,9 @@ import {
   xit,
 } from 'angular2/test_lib';
 
-import {StringMap, ListWrapper} from 'angular2/src/facade/collection';
-import {isPresent, StringWrapper} from 'angular2/src/facade/lang';
-import {PromiseWrapper} from 'angular2/src/facade/async';
+import {ListWrapper} from 'angular2/src/core/facade/collection';
+import {isPresent, StringWrapper} from 'angular2/src/core/facade/lang';
+import {PromiseWrapper} from 'angular2/src/core/facade/async';
 
 import {WebDriverExtension, bind, Injector, Options} from 'benchpress/common';
 
@@ -57,7 +57,7 @@ class MockExtension extends WebDriverExtension {
     this.id = id;
   }
 
-  supports(capabilities: StringMap<string, any>): boolean {
+  supports(capabilities: {[key: string]: any}): boolean {
     return StringWrapper.equals(capabilities['browser'], this.id);
   }
 }

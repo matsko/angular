@@ -1,12 +1,19 @@
-import {bootstrap, Compiler, Component, Directive, View, ViewContainerRef} from 'angular2/angular2';
+import {bootstrap} from 'angular2/bootstrap';
+import {
+  Compiler,
+  Component,
+  Directive,
+  View,
+  ViewContainerRef,
+  bind,
+  Binding,
+  NgIf
+} from 'angular2/core';
 
 import {LifeCycle} from 'angular2/src/core/life_cycle/life_cycle';
-import {reflector} from 'angular2/src/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/reflection/reflection_capabilities';
-import {DOM} from 'angular2/src/dom/dom_adapter';
-import {isPresent} from 'angular2/src/facade/lang';
-import {List} from 'angular2/src/facade/collection';
-import {window, document, gc} from 'angular2/src/facade/browser';
+import {DOM} from 'angular2/src/core/dom/dom_adapter';
+import {isPresent} from 'angular2/src/core/facade/lang';
+import {window, document, gc} from 'angular2/src/core/facade/browser';
 import {
   getIntParameter,
   getStringParameter,
@@ -14,18 +21,12 @@ import {
   windowProfile,
   windowProfileEnd
 } from 'angular2/src/test_lib/benchmark_util';
-import {NgIf} from 'angular2/directives';
-import {BrowserDomAdapter} from 'angular2/src/dom/browser_adapter';
-import {APP_VIEW_POOL_CAPACITY} from 'angular2/src/core/compiler/view_pool';
-import {bind, Binding} from 'angular2/di';
+import {BrowserDomAdapter} from 'angular2/src/core/dom/browser_adapter';
+import {APP_VIEW_POOL_CAPACITY} from 'angular2/src/core/linker/view_pool';
 
-function createBindings(): List<Binding> {
+function createBindings(): Binding[] {
   var viewCacheCapacity = getStringParameter('viewcache') == 'true' ? 10000 : 1;
   return [bind(APP_VIEW_POOL_CAPACITY).toValue(viewCacheCapacity)];
-}
-
-function setupReflector() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
 }
 
 var BASELINE_TREE_TEMPLATE;
@@ -34,8 +35,6 @@ var BASELINE_IF_TEMPLATE;
 export function main() {
   BrowserDomAdapter.makeCurrent();
   var maxDepth = getIntParameter('depth');
-
-  setupReflector();
 
   BASELINE_TREE_TEMPLATE = DOM.createTemplate(
       '<span>_<template class="ng-binding"></template><template class="ng-binding"></template></span>');
@@ -208,7 +207,7 @@ class BaseLineIf {
         this.component = null;
       }
       if (this.condition) {
-        var element = DOM.firstChild(DOM.clone(BASELINE_IF_TEMPLATE).content);
+        var element = DOM.firstChild((<any>DOM.clone(BASELINE_IF_TEMPLATE)).content);
         this.anchor.parentNode.insertBefore(element, DOM.nextSibling(this.anchor));
         this.component = new BaseLineTreeComponent(DOM.firstChild(element));
       }
@@ -219,7 +218,7 @@ class BaseLineIf {
   }
 }
 
-@Component({selector: 'tree', properties: ['data']})
+@Component({selector: 'tree', inputs: ['data']})
 @View({
   directives: [TreeComponent, NgIf],
   template:

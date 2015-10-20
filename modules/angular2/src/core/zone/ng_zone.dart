@@ -3,6 +3,38 @@ library angular.zone;
 import 'dart:async';
 import 'package:stack_trace/stack_trace.dart' show Chain;
 
+typedef void ZeroArgFunction();
+typedef void ErrorHandlingFn(error, stackTrace);
+
+/**
+ * A `Timer` wrapper that lets you specify additional functions to call when it
+ * is cancelled.
+ */
+class WrappedTimer implements Timer {
+  Timer _timer;
+  ZeroArgFunction _onCancelCb;
+
+  WrappedTimer(Timer timer) {
+    _timer = timer;
+  }
+
+  void addOnCancelCb(ZeroArgFunction onCancelCb) {
+    if (this._onCancelCb != null) {
+      throw "On cancel cb already registered";
+    }
+    this._onCancelCb = onCancelCb;
+  }
+
+  void cancel() {
+    if (this._onCancelCb != null) {
+      this._onCancelCb();
+    }
+    _timer.cancel();
+  }
+
+  bool get isActive => _timer.isActive;
+}
+
 /**
  * A `Zone` wrapper that lets you schedule tasks after its private microtask queue is exhausted but
  * before the next "VM turn", i.e. event loop iteration.
@@ -19,9 +51,10 @@ import 'package:stack_trace/stack_trace.dart' show Chain;
  * instantiated. The default `onTurnDone` runs the Angular change detection.
  */
 class NgZone {
-  Function _onTurnStart;
-  Function _onTurnDone;
-  Function _onErrorHandler;
+  ZeroArgFunction _onTurnStart;
+  ZeroArgFunction _onTurnDone;
+  ZeroArgFunction _onEventDone;
+  ErrorHandlingFn _onErrorHandler;
 
   // Code executed in _mountZone does not trigger the onTurnDone.
   Zone _mountZone;
@@ -41,6 +74,8 @@ class NgZone {
 
   bool _inVmTurnDone = false;
 
+  List<Timer> _pendingTimers = [];
+
   /**
    * Associates with this
    *
@@ -59,27 +94,55 @@ class NgZone {
     } else {
       _innerZone = _createInnerZone(Zone.current,
           handleUncaughtError: (Zone self, ZoneDelegate parent, Zone zone,
-              error,
-              StackTrace trace) => _onErrorWithoutLongStackTrace(error, trace));
+                  error, StackTrace trace) =>
+              _onErrorWithoutLongStackTrace(error, trace));
     }
   }
 
   /**
-   * Initializes the zone hooks.
-   *
-   * The given error handler should re-throw the passed exception. Otherwise, exceptions will not
-   * propagate outside of the [NgZone] and can alter the application execution flow.
-   * Not re-throwing could be used to help testing the code or advanced use cases.
-   *
-   * @param {Function} onTurnStart called before code executes in the inner zone for each VM turn
-   * @param {Function} onTurnDone called at the end of a VM turn if code has executed in the inner zone
-   * @param {Function} onErrorHandler called when an exception is thrown by a macro or micro task
+   * Sets the zone hook that is called just before Angular event turn starts.
+   * It is called once per browser event.
    */
-  void initCallbacks(
-      {Function onTurnStart, Function onTurnDone, Function onErrorHandler}) {
-    _onTurnStart = onTurnStart;
-    _onTurnDone = onTurnDone;
-    _onErrorHandler = onErrorHandler;
+  void overrideOnTurnStart(ZeroArgFunction onTurnStartFn) {
+    _onTurnStart = onTurnStartFn;
+  }
+
+  /**
+   * Sets the zone hook that is called immediately after Angular processes
+   * all pending microtasks.
+   */
+  void overrideOnTurnDone(ZeroArgFunction onTurnDoneFn) {
+    _onTurnDone = onTurnDoneFn;
+  }
+
+  /**
+   * Sets the zone hook that is called immediately after the last turn in
+   * an event completes. At this point Angular will no longer attempt to
+   * sync the UI. Any changes to the data model will not be reflected in the
+   * DOM. `onEventDoneFn` is executed outside Angular zone.
+   *
+   * This hook is useful for validating application state (e.g. in a test).
+   */
+  void overrideOnEventDone(ZeroArgFunction onEventDoneFn,
+      [bool waitForAsync = false]) {
+    _onEventDone = onEventDoneFn;
+
+    if (waitForAsync) {
+      _onEventDone = () {
+        if (_pendingTimers.length == 0) {
+          onEventDoneFn();
+        }
+      };
+    }
+  }
+
+  /**
+   * Sets the zone hook that is called when an error is uncaught in the
+   * Angular zone. The first argument is the error. The second argument is
+   * the stack trace.
+   */
+  void overrideOnErrorHandler(ErrorHandlingFn errorHandlingFn) {
+    _onErrorHandler = errorHandlingFn;
   }
 
   /**
@@ -151,10 +214,15 @@ class NgZone {
           try {
             _inVmTurnDone = true;
             parent.run(_innerZone, _onTurnDone);
+
           } finally {
             _inVmTurnDone = false;
             _hasExecutedCodeInInnerZone = false;
           }
+        }
+
+        if (_pendingMicrotasks == 0 && _onEventDone != null) {
+          runOutsideAngular(_onEventDone);
         }
       }
     }
@@ -164,7 +232,8 @@ class NgZone {
       _run(self, parent, zone, () => fn(arg));
 
   dynamic _runBinary(Zone self, ZoneDelegate parent, Zone zone, fn(arg1, arg2),
-      arg1, arg2) => _run(self, parent, zone, () => fn(arg1, arg2));
+          arg1, arg2) =>
+      _run(self, parent, zone, () => fn(arg1, arg2));
 
   void _scheduleMicrotask(Zone self, ZoneDelegate parent, Zone zone, fn) {
     _pendingMicrotasks++;
@@ -197,6 +266,21 @@ class NgZone {
     }
   }
 
+  Timer _createTimer(
+      Zone self, ZoneDelegate parent, Zone zone, Duration duration, fn()) {
+    WrappedTimer wrappedTimer;
+    var cb = () {
+      fn();
+      _pendingTimers.remove(wrappedTimer);
+    };
+    Timer timer = parent.createTimer(zone, duration, cb);
+    wrappedTimer = new WrappedTimer(timer);
+    wrappedTimer.addOnCancelCb(() => _pendingTimers.remove(wrappedTimer));
+
+    _pendingTimers.add(wrappedTimer);
+    return wrappedTimer;
+  }
+
   Zone _createInnerZone(Zone zone, {handleUncaughtError}) {
     return zone.fork(
         specification: new ZoneSpecification(
@@ -204,7 +288,8 @@ class NgZone {
             run: _run,
             runUnary: _runUnary,
             runBinary: _runBinary,
-            handleUncaughtError: handleUncaughtError),
+            handleUncaughtError: handleUncaughtError,
+            createTimer: _createTimer),
         zoneValues: {'_innerZone': true});
   }
 }

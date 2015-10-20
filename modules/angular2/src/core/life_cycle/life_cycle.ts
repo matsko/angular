@@ -1,8 +1,9 @@
-import {Injectable} from 'angular2/di';
-import {ChangeDetector} from 'angular2/change_detection';
+import {Injectable} from 'angular2/src/core/di';
+import {ChangeDetector} from 'angular2/src/core/change_detection/change_detection';
 import {NgZone} from 'angular2/src/core/zone/ng_zone';
-import {ExceptionHandler} from 'angular2/src/core/exception_handler';
-import {isPresent, BaseException} from 'angular2/src/facade/lang';
+import {isPresent} from 'angular2/src/core/facade/lang';
+import {BaseException, WrappedException} from 'angular2/src/core/facade/exceptions';
+import {wtfLeave, wtfCreateScope, WtfScopeFn} from '../profile/profile';
 
 /**
  * Provides access to explicitly trigger change detection in an application.
@@ -29,23 +30,23 @@ import {isPresent, BaseException} from 'angular2/src/facade/lang';
  *   lifecycle.tick();
  * });
  * ```
- * @exportedAs angular2/change_detection
  */
 @Injectable()
 export class LifeCycle {
-  _errorHandler;
-  _changeDetector: ChangeDetector;
+  static _tickScope: WtfScopeFn = wtfCreateScope('LifeCycle#tick()');
+
+  _changeDetectors: ChangeDetector[];
   _enforceNoNewChanges: boolean;
   _runningTick: boolean = false;
 
-  constructor(exceptionHandler: ExceptionHandler, changeDetector: ChangeDetector = null,
-              enforceNoNewChanges: boolean = false) {
-    this._errorHandler = (exception, stackTrace) => {
-      exceptionHandler.call(exception, stackTrace);
-      throw exception;
-    };
-    this._changeDetector =
-        changeDetector;  // may be null when instantiated from application bootstrap
+  /**
+   * @private
+   */
+  constructor(changeDetector: ChangeDetector = null, enforceNoNewChanges: boolean = false) {
+    this._changeDetectors = [];
+    if (isPresent(changeDetector)) {
+      this._changeDetectors.push(changeDetector);
+    }
     this._enforceNoNewChanges = enforceNoNewChanges;
   }
 
@@ -54,10 +55,9 @@ export class LifeCycle {
    */
   registerWith(zone: NgZone, changeDetector: ChangeDetector = null) {
     if (isPresent(changeDetector)) {
-      this._changeDetector = changeDetector;
+      this._changeDetectors.push(changeDetector);
     }
-
-    zone.initCallbacks({onErrorHandler: this._errorHandler, onTurnDone: () => this.tick()});
+    zone.overrideOnTurnDone(() => this.tick());
   }
 
   /**
@@ -80,14 +80,16 @@ export class LifeCycle {
       throw new BaseException("LifeCycle.tick is called recursively");
     }
 
+    var s = LifeCycle._tickScope();
     try {
       this._runningTick = true;
-      this._changeDetector.detectChanges();
+      this._changeDetectors.forEach((detector) => detector.detectChanges());
       if (this._enforceNoNewChanges) {
-        this._changeDetector.checkNoChanges();
+        this._changeDetectors.forEach((detector) => detector.checkNoChanges());
       }
     } finally {
       this._runningTick = false;
+      wtfLeave(s);
     }
   }
 }

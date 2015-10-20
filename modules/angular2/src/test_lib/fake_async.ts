@@ -1,14 +1,14 @@
 /// <reference path="../../typings/jasmine/jasmine.d.ts"/>
 
-import {BaseException, global} from 'angular2/src/facade/lang';
-import {ListWrapper} from 'angular2/src/facade/collection';
+import {global} from 'angular2/src/core/facade/lang';
+import {BaseException, WrappedException} from 'angular2/src/core/facade/exceptions';
+import {ListWrapper} from 'angular2/src/core/facade/collection';
 import {NgZoneZone} from 'angular2/src/core/zone/ng_zone';
 
 var _scheduler;
-var _microtasks: List<Function> = [];
-var _pendingPeriodicTimers: List<number> = [];
-var _pendingTimers: List<number> = [];
-var _error = null;
+var _microtasks: Function[] = [];
+var _pendingPeriodicTimers: number[] = [];
+var _pendingTimers: number[] = [];
 
 interface FakeAsyncZone extends NgZoneZone {
   _inFakeAsyncZone: boolean;
@@ -38,15 +38,13 @@ export function fakeAsync(fn: Function): Function {
     _inFakeAsyncZone: true
   });
 
-  return function(... args) {
+  return function(...args) {
     // TODO(tbosch): This class should already be part of the jasmine typings but it is not...
     _scheduler = new (<any>jasmine).DelayedFunctionScheduler();
-    ListWrapper.clear(_microtasks);
-    ListWrapper.clear(_pendingPeriodicTimers);
-    ListWrapper.clear(_pendingTimers);
+    clearPendingTimers();
 
     let res = fakeAsyncZone.run(() => {
-      let res = fn(... args);
+      let res = fn(...args);
       flushMicrotasks();
       return res;
     });
@@ -66,6 +64,14 @@ export function fakeAsync(fn: Function): Function {
     return res;
   }
 }
+
+// TODO we should fix tick to dequeue the failed timer instead of relying on clearPendingTimers
+export function clearPendingTimers(): void {
+  ListWrapper.clear(_microtasks);
+  ListWrapper.clear(_pendingPeriodicTimers);
+  ListWrapper.clear(_pendingTimers);
+}
+
 
 /**
  * Simulates the asynchronous passage of time for the timers in the fakeAsync zone.
@@ -92,7 +98,7 @@ export function flushMicrotasks(): void {
   }
 }
 
-function _setTimeout(fn: Function, delay: number, ... args): number {
+function _setTimeout(fn: Function, delay: number, ...args): number {
   var cb = _fnAndFlush(fn);
   var id = _scheduler.scheduleFunction(cb, delay, args);
   _pendingTimers.push(id);
@@ -105,7 +111,7 @@ function _clearTimeout(id: number) {
   return _scheduler.removeFunctionWithId(id);
 }
 
-function _setInterval(fn: Function, interval: number, ... args) {
+function _setInterval(fn: Function, interval: number, ...args) {
   var cb = _fnAndFlush(fn);
   var id = _scheduler.scheduleFunction(cb, interval, args, true);
   _pendingPeriodicTimers.push(id);
@@ -118,9 +124,10 @@ function _clearInterval(id: number) {
 }
 
 function _fnAndFlush(fn: Function): Function {
-  return (... args) => { fn.apply(global, args);
-  flushMicrotasks();
-}
+  return (...args) => {
+    fn.apply(global, args);
+    flushMicrotasks();
+  }
 }
 
 function _scheduleMicrotask(microtask: Function): void {

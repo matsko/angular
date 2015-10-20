@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<title>5 Animation Example</title>
+<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.5/material.indigo-pink.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.transit/0.9.12/jquery.transit.min.js"></script>
+<style>
+  body {
+    padding: 50px;
+  }
+  button {
+    position: relative;
+    overflow: hidden;
+    width: 200px;
+    height: 36px;
+    background: rgb(16,108,200);
+    text-transform: uppercase;
+    color: white;
+    font-size: 14px;
+    font-family: Roboto, sans-serif;
+    border-radius: 2px;
+    box-shadow: none;
+    border: none;
+    cursor: pointer;
+  }
+  .ripple {
+    background: white;
+    position: absolute;
+    border-radius: 50%;
+    transition-timing-function: linear;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.2;
+    pointer-events: none;
+  }
+</style>
+<body>
+  <animate-app>Loading...</animate-app>
+  $SCRIPTS$
+</body>
+</html>

@@ -16,16 +16,17 @@ allTests() {
 Future runBenchmark() async {
   var options = new TransformerOptions(['web/index.dart']);
   var files = {new AssetId('a', 'web/index.dart'): indexContents,};
-  return new TransformerBenchmark([[new ReflectionRemover(options)]], files)
-      .measure();
+  return new TransformerBenchmark([
+    [new ReflectionRemover(options)]
+  ], files).measure();
 }
 
 const indexContents = '''
 library web_foo;
 
-import 'package:angular2/src/core/application.dart';
-import 'package:angular2/src/reflection/reflection.dart';
-import 'package:angular2/src/reflection/reflection_capabilities.dart';
+import 'package:angular2/bootstrap.dart';
+import 'package:angular2/src/core/reflection/reflection.dart';
+import 'package:angular2/src/core/reflection/reflection_capabilities.dart';
 
 void main() {
   reflector.reflectionCapabilities = new ReflectionCapabilities();

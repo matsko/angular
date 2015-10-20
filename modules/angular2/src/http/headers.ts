@@ -1,37 +1,50 @@
-import {
-  isPresent,
-  isBlank,
-  isJsObject,
-  isType,
-  StringWrapper,
-  BaseException
-} from 'angular2/src/facade/lang';
+import {isPresent, isBlank, isJsObject, isType, StringWrapper} from 'angular2/src/core/facade/lang';
+import {BaseException, WrappedException} from 'angular2/src/core/facade/exceptions';
 import {
   isListLikeIterable,
-  List,
   Map,
   MapWrapper,
   ListWrapper,
-  StringMap
-} from 'angular2/src/facade/collection';
+} from 'angular2/src/core/facade/collection';
 
 /**
  * Polyfill for [Headers](https://developer.mozilla.org/en-US/docs/Web/API/Headers/Headers), as
- * specified in the [Fetch Spec](https://fetch.spec.whatwg.org/#headers-class). The only known
- * difference from the spec is the lack of an `entries` method.
+ * specified in the [Fetch Spec](https://fetch.spec.whatwg.org/#headers-class).
+ *
+ * The only known difference between this `Headers` implementation and the spec is the
+ * lack of an `entries` method.
+ *
+ * ### Example ([live demo](http://plnkr.co/edit/MTdwT6?p=preview))
+ *
+ * ```
+ * import {Headers} from 'angular2/http';
+ *
+ * var firstHeaders = new Headers();
+ * firstHeaders.append('Content-Type', 'image/jpeg');
+ * console.log(firstHeaders.get('Content-Type')) //'image/jpeg'
+ *
+ * // Create headers from Plain Old JavaScript Object
+ * var secondHeaders = new Headers({
+ *   'X-My-Custom-Header': 'Angular'
+ * });
+ * console.log(secondHeaders.get('X-My-Custom-Header')); //'Angular'
+ *
+ * var thirdHeaders = new Headers(secondHeaders);
+ * console.log(thirdHeaders.get('X-My-Custom-Header')); //'Angular'
+ * ```
  */
 export class Headers {
-  _headersMap: Map<string, List<string>>;
-  constructor(headers?: Headers | StringMap<string, any>) {
+  _headersMap: Map<string, string[]>;
+  constructor(headers?: Headers | {[key: string]: any}) {
     if (isBlank(headers)) {
-      this._headersMap = new Map();
+      this._headersMap = new Map<string, string[]>();
       return;
     }
 
     if (headers instanceof Headers) {
       this._headersMap = (<Headers>headers)._headersMap;
-    } else if (headers instanceof StringMap) {
-      this._headersMap = MapWrapper.createFromStringMap(headers);
+    } else /*if (headers instanceof StringMap)*/ {
+      this._headersMap = MapWrapper.createFromStringMap<string[]>(<{[key: string]: any}>headers);
       MapWrapper.forEach(this._headersMap, (v, k) => {
         if (!isListLikeIterable(v)) {
           var list = [];
@@ -57,7 +70,9 @@ export class Headers {
    */
   delete (name: string): void { MapWrapper.delete(this._headersMap, name); }
 
-  forEach(fn: Function) { MapWrapper.forEach(this._headersMap, fn); }
+  forEach(fn: (value: string, name: string, headers: Headers) => any): void {
+    MapWrapper.forEach(this._headersMap, fn);
+  }
 
   /**
    * Returns first header that matches given name.
@@ -72,16 +87,16 @@ export class Headers {
   /**
    * Provides names of set headers
    */
-  keys(): List<string> { return MapWrapper.keys(this._headersMap); }
+  keys(): string[] { return MapWrapper.keys(this._headersMap); }
 
   /**
    * Sets or overrides header value for given name.
    */
-  set(header: string, value: string | List<string>): void {
+  set(header: string, value: string | string[]): void {
     var list = [];
 
     if (isListLikeIterable(value)) {
-      var pushValue = (<List<string>>value).join(',');
+      var pushValue = (<string[]>value).join(',');
       list.push(pushValue);
     } else {
       list.push(value);
@@ -93,12 +108,12 @@ export class Headers {
   /**
    * Returns values of all headers.
    */
-  values(): List<List<string>> { return MapWrapper.values(this._headersMap); }
+  values(): string[][] { return MapWrapper.values(this._headersMap); }
 
   /**
    * Returns list of header values for a given name.
    */
-  getAll(header: string): Array<string> {
+  getAll(header: string): string[] {
     var headers = this._headersMap.get(header);
     return isListLikeIterable(headers) ? headers : [];
   }

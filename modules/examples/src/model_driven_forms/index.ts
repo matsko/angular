@@ -1,25 +1,25 @@
+import {bootstrap} from 'angular2/bootstrap';
 import {
-  bootstrap,
-  onChange,
+  FORM_DIRECTIVES,
+  NgControl,
+  Validators,
+  NgFormModel,
+  FormBuilder,
   NgIf,
   NgFor,
   Component,
   Directive,
   View,
-  Ancestor
-} from 'angular2/angular2';
-import {formDirectives, NgControl, Validators, NgFormModel, FormBuilder} from 'angular2/forms';
+  Host
+} from 'angular2/core';
 
-import {RegExpWrapper, print, isPresent} from 'angular2/src/facade/lang';
-
-import {reflector} from 'angular2/src/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/reflection/reflection_capabilities';
+import {RegExpWrapper, print, isPresent} from 'angular2/src/core/facade/lang';
 
 /**
  * Custom validator.
  */
-function creditCardValidator(c): StringMap<string, boolean> {
-  if (isPresent(c.value) && RegExpWrapper.test(new RegExp("^\\d{16}$"), c.value)) {
+function creditCardValidator(c): {[key: string]: boolean} {
+  if (isPresent(c.value) && RegExpWrapper.test(/^\d{16}$/g, c.value)) {
     return null;
   } else {
     return {"invalidCreditCard": true};
@@ -41,7 +41,7 @@ function creditCardValidator(c): StringMap<string, boolean> {
  * actual error message.
  * To make it simple, we are using a simple map here.
  */
-@Component({selector: 'show-error', properties: ['controlPath: control', 'errorTypes: errors']})
+@Component({selector: 'show-error', inputs: ['controlPath: control', 'errorTypes: errors']})
 @View({
   template: `
     <span *ng-if="errorMessage !== null">{{errorMessage}}</span>
@@ -51,28 +51,30 @@ function creditCardValidator(c): StringMap<string, boolean> {
 class ShowError {
   formDir;
   controlPath: string;
-  errorTypes: List<string>;
+  errorTypes: string[];
 
-  constructor(@Ancestor() formDir: NgFormModel) { this.formDir = formDir; }
+  constructor(@Host() formDir: NgFormModel) { this.formDir = formDir; }
 
-  get errorMessage() {
-    var c = this.formDir.form.find(this.controlPath);
-    for (var i = 0; i < this.errorTypes.length; ++i) {
-      if (isPresent(c) && c.touched && c.hasError(this.errorTypes[i])) {
-        return this._errorMessage(this.errorTypes[i]);
+  get errorMessage(): string {
+    var control = this.formDir.form.find(this.controlPath);
+    if (isPresent(control) && control.touched) {
+      for (var i = 0; i < this.errorTypes.length; ++i) {
+        if (control.hasError(this.errorTypes[i])) {
+          return this._errorMessage(this.errorTypes[i]);
+        }
       }
     }
     return null;
   }
 
-  _errorMessage(code) {
+  _errorMessage(code: string): string {
     var config = {'required': 'is required', 'invalidCreditCard': 'is invalid credit card number'};
     return config[code];
   }
 }
 
 
-@Component({selector: 'model-driven-forms', viewInjector: [FormBuilder]})
+@Component({selector: 'model-driven-forms', viewBindings: [FormBuilder]})
 @View({
   template: `
     <h1>Checkout Form (Model Driven)</h1>
@@ -129,7 +131,7 @@ class ShowError {
       <button type="submit" [disabled]="!f.form.valid">Submit</button>
     </form>
   `,
-  directives: [formDirectives, NgFor, ShowError]
+  directives: [FORM_DIRECTIVES, NgFor, ShowError]
 })
 class ModelDrivenForms {
   form;
@@ -148,13 +150,12 @@ class ModelDrivenForms {
     });
   }
 
-  onSubmit() {
+  onSubmit(): void {
     print("Submitting:");
     print(this.form.value);
   }
 }
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
   bootstrap(ModelDrivenForms);
 }

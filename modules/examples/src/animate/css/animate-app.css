@@ -1,0 +1,42 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  padding: 20px;
+  background:lime;
+}
+
+animate-app {
+  width:600px;
+  background:white;
+  border:5px solid black;
+  margin:0 auto;
+  display:block;
+}
+
+.apps {
+  display:flex;
+  flex-wrap: wrap;
+  width:100%;
+}
+
+.apps > .app {
+  flex:1;
+  min-width:33%;
+  height:auto;
+  text-align:center;
+  padding:10px;
+}
+
+.apps > .app > img {
+  width:100%;
+}
+
+notification-panel {
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  background:rgba(0,0,0,0.9);
+}

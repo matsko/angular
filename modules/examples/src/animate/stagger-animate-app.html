@@ -1,0 +1,11 @@
+<h2>Items Page</h2>
+<nav>
+  <button (click)="setItems()">Set Items</button>
+  <button (click)="removeItems()">Remove Items</button>
+</nav>
+<hr />
+<div class="list">
+  <div *ng-for="#item of items" class="item">
+    {{ item }}
+  </div>
+</div>

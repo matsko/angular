@@ -11,13 +11,14 @@ import {
   xit,
   SpyObject
 } from 'angular2/test_lib';
-import {ObservableWrapper} from 'angular2/src/facade/async';
+import {ObservableWrapper} from 'angular2/src/core/facade/async';
 import {BrowserXhr} from 'angular2/src/http/backends/browser_xhr';
 import {XHRConnection, XHRBackend} from 'angular2/src/http/backends/xhr_backend';
-import {bind, Injector} from 'angular2/di';
+import {bind, Injector} from 'angular2/core';
 import {Request} from 'angular2/src/http/static_request';
+import {Response} from 'angular2/src/http/static_response';
 import {Headers} from 'angular2/src/http/headers';
-import {Map} from 'angular2/src/facade/collection';
+import {Map} from 'angular2/src/core/facade/collection';
 import {RequestOptions, BaseRequestOptions} from 'angular2/src/http/base_request_options';
 import {BaseResponseOptions, ResponseOptions} from 'angular2/src/http/base_response_options';
 import {ResponseTypes} from 'angular2/src/http/enums';
@@ -28,6 +29,7 @@ var openSpy;
 var setRequestHeaderSpy;
 var addEventListenerSpy;
 var existingXHRs = [];
+var unused: Response;
 
 class MockBrowserXHR extends BrowserXhr {
   abort: any;
@@ -36,7 +38,8 @@ class MockBrowserXHR extends BrowserXhr {
   response: any;
   responseText: string;
   setRequestHeader: any;
-  callbacks: Map<string, Function>;
+  callbacks = new Map<string, Function>();
+  status: number;
   constructor() {
     super();
     var spy = new SpyObject();
@@ -44,10 +47,17 @@ class MockBrowserXHR extends BrowserXhr {
     this.send = sendSpy = spy.spy('send');
     this.open = openSpy = spy.spy('open');
     this.setRequestHeader = setRequestHeaderSpy = spy.spy('setRequestHeader');
-    this.callbacks = new Map();
   }
 
+  setStatusCode(status) { this.status = status; }
+
+  setResponse(value) { this.response = value; }
+
+  setResponseText(value) { this.responseText = value; }
+
   addEventListener(type: string, cb: Function) { this.callbacks.set(type, cb); }
+
+  removeEventListener(type: string, cb: Function) { this.callbacks.delete(type); }
 
   dispatchEvent(type: string) { this.callbacks.get(type)({}); }
 
@@ -86,31 +96,54 @@ export function main() {
          inject([AsyncTestCompleter], async => {
            var connection = new XHRConnection(sampleRequest, new MockBrowserXHR(),
                                               new ResponseOptions({type: ResponseTypes.Error}));
-           ObservableWrapper.subscribe(connection.response, res => {
+           connection.response.subscribe(res => {
              expect(res.type).toBe(ResponseTypes.Error);
              async.done();
            });
            existingXHRs[0].dispatchEvent('load');
          }));
 
+      it('should complete a request', inject([AsyncTestCompleter], async => {
+           var connection = new XHRConnection(sampleRequest, new MockBrowserXHR(),
+                                              new ResponseOptions({type: ResponseTypes.Error}));
+           connection.response.subscribe(res => { expect(res.type).toBe(ResponseTypes.Error); },
+                                         null, () => { async.done(); });
+
+           existingXHRs[0].dispatchEvent('load');
+         }));
+
       it('should call abort when disposed', () => {
         var connection = new XHRConnection(sampleRequest, new MockBrowserXHR());
-        connection.dispose();
+        var request = connection.response.subscribe();
+        request.unsubscribe();
         expect(abortSpy).toHaveBeenCalled();
       });
 
+      it('should create an error Response on error', inject([AsyncTestCompleter], async => {
+           var connection = new XHRConnection(sampleRequest, new MockBrowserXHR(),
+                                              new ResponseOptions({type: ResponseTypes.Error}));
+           connection.response.subscribe(null, res => {
+             expect(res.type).toBe(ResponseTypes.Error);
+             async.done();
+           });
+           existingXHRs[0].dispatchEvent('error');
+         }));
 
-      it('should automatically call open with method and url', () => {
-        new XHRConnection(sampleRequest, new MockBrowserXHR());
+      it('should call open with method and url when subscribed to', () => {
+        var connection = new XHRConnection(sampleRequest, new MockBrowserXHR());
+        expect(openSpy).not.toHaveBeenCalled();
+        connection.response.subscribe();
         expect(openSpy).toHaveBeenCalledWith('GET', sampleRequest.url);
       });
 
 
-      it('should automatically call send on the backend with request body', () => {
+      it('should call send on the backend with request body when subscribed to', () => {
         var body = 'Some body to love';
         var base = new BaseRequestOptions();
-        new XHRConnection(new Request(base.merge(new RequestOptions({body: body}))),
-                          new MockBrowserXHR());
+        var connection = new XHRConnection(
+            new Request(base.merge(new RequestOptions({body: body}))), new MockBrowserXHR());
+        expect(sendSpy).not.toHaveBeenCalled();
+        connection.response.subscribe();
         expect(sendSpy).toHaveBeenCalledWith(body);
       });
 
@@ -118,11 +151,66 @@ export function main() {
         var headers = new Headers({'Content-Type': 'text/xml', 'Breaking-Bad': '<3'});
 
         var base = new BaseRequestOptions();
-        new XHRConnection(new Request(base.merge(new RequestOptions({headers: headers}))),
-                          new MockBrowserXHR());
+        var connection = new XHRConnection(
+            new Request(base.merge(new RequestOptions({headers: headers}))), new MockBrowserXHR());
+        connection.response.subscribe();
         expect(setRequestHeaderSpy).toHaveBeenCalledWith('Content-Type', ['text/xml']);
         expect(setRequestHeaderSpy).toHaveBeenCalledWith('Breaking-Bad', ['<3']);
       });
+
+      it('should return the correct status code', inject([AsyncTestCompleter], async => {
+           var statusCode = 418;
+           var connection = new XHRConnection(sampleRequest, new MockBrowserXHR(),
+                                              new ResponseOptions({status: statusCode}));
+
+           connection.response.subscribe(res => {
+             expect(res.status).toBe(statusCode);
+             async.done();
+           });
+
+           existingXHRs[0].setStatusCode(statusCode);
+           existingXHRs[0].dispatchEvent('load');
+         }));
+
+      it('should normalize IE\'s 1223 status code into 204', inject([AsyncTestCompleter], async => {
+           var statusCode = 1223;
+           var normalizedCode = 204;
+           var connection = new XHRConnection(sampleRequest, new MockBrowserXHR(),
+                                              new ResponseOptions({status: statusCode}));
+
+           connection.response.subscribe(res => {
+             expect(res.status).toBe(normalizedCode);
+             async.done();
+           });
+
+           existingXHRs[0].setStatusCode(statusCode);
+           existingXHRs[0].dispatchEvent('load');
+         }));
+
+      it('should normalize responseText and response', inject([AsyncTestCompleter], async => {
+           var responseBody = 'Doge';
+
+           var connection1 =
+               new XHRConnection(sampleRequest, new MockBrowserXHR(), new ResponseOptions());
+
+           var connection2 =
+               new XHRConnection(sampleRequest, new MockBrowserXHR(), new ResponseOptions());
+
+           connection1.response.subscribe(res => {
+             expect(res.text()).toBe(responseBody);
+
+             connection2.response.subscribe(ress => {
+               expect(ress.text()).toBe(responseBody);
+               async.done();
+             });
+             existingXHRs[1].setResponse(responseBody);
+             existingXHRs[1].dispatchEvent('load');
+           });
+
+           existingXHRs[0].setResponseText(responseBody);
+           existingXHRs[0].dispatchEvent('load');
+         }));
+
     });
   });
 }

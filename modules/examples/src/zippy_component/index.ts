@@ -1,6 +1,5 @@
-import {bootstrap, Component, View, NgFor} from 'angular2/angular2';
-import {reflector} from 'angular2/src/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/reflection/reflection_capabilities';
+import {bootstrap} from 'angular2/bootstrap';
+import {Component, View, NgFor} from 'angular2/core';
 import {Zippy} from './zippy';
 
 @Component({selector: 'zippy-app'})
@@ -16,12 +15,11 @@ import {Zippy} from './zippy';
   directives: [Zippy, NgFor]
 })
 class ZippyApp {
-  logs: Array<string> = [];
+  logs: string[] = [];
 
   pushLog(log: string) { this.logs.push(log); }
 }
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
   bootstrap(ZippyApp);
 }

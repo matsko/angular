@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <title>2 Animation Example</title>
+<style>
+.number-counter {
+  width:200px;
+  height:200px;
+  position:relative;
+  overflow:hidden;
+}
+.number-frame {
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:100%;
+  line-height:200px;
+  font-size:200px;
+  text-align:center;
+}
+
+.fade-out-start.fade-out {
+  transition:0.5s linear all;
+  top:-100%;
+  opacity:0;
+}
+
+.fade-in-start.fade-in {
+  top:0;
+  opacity:1;
+  transition:0.5s linear all;
+}
+.fade-in-start {
+  top:100%;
+  opacity:0;
+  transition-delay:-9999s;
+}
+</style>
+<body>
+  <animate-app>Loading...</animate-app>
+
+$SCRIPTS$
+</body>
+</html>

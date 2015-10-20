@@ -1,21 +1,26 @@
 /// <reference path="../../typings/jasmine/jasmine.d.ts"/>
 
-import {DOM} from 'angular2/src/dom/dom_adapter';
-import {StringMapWrapper} from 'angular2/src/facade/collection';
-import {global} from 'angular2/src/facade/lang';
+import {DOM} from 'angular2/src/core/dom/dom_adapter';
+import {StringMapWrapper} from 'angular2/src/core/facade/collection';
+import {global, isFunction, Math} from 'angular2/src/core/facade/lang';
 import {NgZoneZone} from 'angular2/src/core/zone/ng_zone';
 
-import {bind} from 'angular2/di';
+import {bind} from 'angular2/src/core/di';
 
 import {createTestInjector, FunctionWithParamTokens, inject} from './test_injector';
+import {browserDetection} from './utils';
 
 export {inject} from './test_injector';
 
-export function proxy() {}
+export var proxy: ClassDecorator = (t) => t;
 
 var _global: jasmine.GlobalPolluter = <any>(typeof window === 'undefined' ? global : window);
 
-export var afterEach = _global.afterEach;
+export var afterEach: Function = _global.afterEach;
+
+export type SyncTestFn = () => void;
+type AsyncTestFn = (done: () => void) => void;
+type AnyTestFn = SyncTestFn | AsyncTestFn;
 
 export interface NgMatchers extends jasmine.Matchers {
   toBe(expected: any): boolean;
@@ -23,20 +28,19 @@ export interface NgMatchers extends jasmine.Matchers {
   toBePromise(): boolean;
   toBeAnInstanceOf(expected: any): boolean;
   toHaveText(expected: any): boolean;
+  toHaveCssClass(expected: any): boolean;
   toImplement(expected: any): boolean;
+  toContainError(expected: any): boolean;
+  toThrowErrorWith(expectedMessage: any): boolean;
   not: NgMatchers;
 }
 
 export var expect: (actual: any) => NgMatchers = <any>_global.expect;
 
-export var IS_DARTIUM = false;
-
 export class AsyncTestCompleter {
-  _done: Function;
+  constructor(private _done: Function) {}
 
-  constructor(done: Function) { this._done = done; }
-
-  done() { this._done(); }
+  done(): void { this._done(); }
 }
 
 var jsmBeforeEach = _global.beforeEach;
@@ -49,22 +53,27 @@ var jsmXIt = _global.xit;
 
 var runnerStack = [];
 var inIt = false;
+var globalTimeOut = browserDetection.isSlow ? 3000 : jasmine.DEFAULT_TIMEOUT_INTERVAL;
 
 var testBindings;
 
+/**
+ * Mechanism to run `beforeEach()` functions of Angular tests.
+ *
+ * Note: Jasmine own `beforeEach` is used by this library to handle DI bindings.
+ */
 class BeforeEachRunner {
-  _fns: List<FunctionWithParamTokens>;
-  _parent: BeforeEachRunner;
-  constructor(parent: BeforeEachRunner) {
-    this._fns = [];
-    this._parent = parent;
-  }
+  private _fns: Array<FunctionWithParamTokens | SyncTestFn> = [];
 
-  beforeEach(fn: FunctionWithParamTokens) { this._fns.push(fn); }
+  constructor(private _parent: BeforeEachRunner) {}
 
-  run(injector) {
+  beforeEach(fn: FunctionWithParamTokens | SyncTestFn): void { this._fns.push(fn); }
+
+  run(injector): void {
     if (this._parent) this._parent.run(injector);
-    this._fns.forEach((fn) => fn.execute(injector));
+    this._fns.forEach((fn) => {
+      return isFunction(fn) ? (<SyncTestFn>fn)() : (<FunctionWithParamTokens>fn).execute(injector);
+    });
   }
 }
 
@@ -80,29 +89,25 @@ function _describe(jsmFn, ...args) {
   return suite;
 }
 
-export function describe(...args) {
+export function describe(...args): void {
   return _describe(jsmDescribe, ...args);
 }
 
-export function ddescribe(...args) {
+export function ddescribe(...args): void {
   return _describe(jsmDDescribe, ...args);
 }
 
-export function xdescribe(...args) {
+export function xdescribe(...args): void {
   return _describe(jsmXDescribe, ...args);
 }
 
-export function beforeEach(fn) {
+export function beforeEach(fn: FunctionWithParamTokens | SyncTestFn): void {
   if (runnerStack.length > 0) {
     // Inside a describe block, beforeEach() uses a BeforeEachRunner
-    var runner = runnerStack[runnerStack.length - 1];
-    if (!(fn instanceof FunctionWithParamTokens)) {
-      fn = inject([], fn);
-    }
-    runner.beforeEach(fn);
+    runnerStack[runnerStack.length - 1].beforeEach(fn);
   } else {
     // Top level beforeEach() are delegated to jasmine
-    jsmBeforeEach(fn);
+    jsmBeforeEach(<SyncTestFn>fn);
   }
 }
 
@@ -118,7 +123,7 @@ export function beforeEach(fn) {
  *     bind(SomeToken).toValue(myValue),
  *   ]);
  */
-export function beforeEachBindings(fn) {
+export function beforeEachBindings(fn): void {
   jsmBeforeEach(() => {
     var bindings = fn();
     if (!bindings) return;
@@ -126,46 +131,70 @@ export function beforeEachBindings(fn) {
   });
 }
 
-function _it(jsmFn, name, fn) {
+function _it(jsmFn: Function, name: string, testFn: FunctionWithParamTokens | AnyTestFn,
+             testTimeOut: number): void {
   var runner = runnerStack[runnerStack.length - 1];
+  var timeOut = Math.max(globalTimeOut, testTimeOut);
 
-  jsmFn(name, function(done) {
-    var async = false;
+  if (testFn instanceof FunctionWithParamTokens) {
+    // The test case uses inject(). ie `it('test', inject([AsyncTestCompleter], (async) => { ...
+    // }));`
 
-    var completerBinding =
-        bind(AsyncTestCompleter)
-            .toFactory(() => {
-              // Mark the test as async when an AsyncTestCompleter is injected in an it()
-              if (!inIt) throw new Error('AsyncTestCompleter can only be injected in an "it()"');
-              async = true;
-              return new AsyncTestCompleter(done);
-            });
+    if (testFn.hasToken(AsyncTestCompleter)) {
+      jsmFn(name, (done) => {
+        var completerBinding =
+            bind(AsyncTestCompleter)
+                .toFactory(() => {
+                  // Mark the test as async when an AsyncTestCompleter is injected in an it()
+                  if (!inIt)
+                    throw new Error('AsyncTestCompleter can only be injected in an "it()"');
+                  return new AsyncTestCompleter(done);
+                });
 
-    var injector = createTestInjector([...testBindings, completerBinding]);
-    runner.run(injector);
+        var injector = createTestInjector([...testBindings, completerBinding]);
+        runner.run(injector);
 
-    if (!(fn instanceof FunctionWithParamTokens)) {
-      fn = inject([], fn);
+        inIt = true;
+        testFn.execute(injector);
+        inIt = false;
+      }, timeOut);
+    } else {
+      jsmFn(name, () => {
+        var injector = createTestInjector(testBindings);
+        runner.run(injector);
+        testFn.execute(injector);
+      }, timeOut);
     }
 
-    inIt = true;
-    fn.execute(injector);
-    inIt = false;
+  } else {
+    // The test case doesn't use inject(). ie `it('test', (done) => { ... }));`
 
-    if (!async) done();
-  });
+    if ((<any>testFn).length === 0) {
+      jsmFn(name, () => {
+        var injector = createTestInjector(testBindings);
+        runner.run(injector);
+        (<SyncTestFn>testFn)();
+      }, timeOut);
+    } else {
+      jsmFn(name, (done) => {
+        var injector = createTestInjector(testBindings);
+        runner.run(injector);
+        (<AsyncTestFn>testFn)(done);
+      }, timeOut);
+    }
+  }
 }
 
-export function it(name, fn) {
-  return _it(jsmIt, name, fn);
+export function it(name, fn, timeOut = null): void {
+  return _it(jsmIt, name, fn, timeOut);
 }
 
-export function xit(name, fn) {
-  return _it(jsmXIt, name, fn);
+export function xit(name, fn, timeOut = null): void {
+  return _it(jsmXIt, name, fn, timeOut);
 }
 
-export function iit(name, fn) {
-  return _it(jsmIIt, name, fn);
+export function iit(name, fn, timeOut = null): void {
+  return _it(jsmIIt, name, fn, timeOut);
 }
 
 // Some Map polyfills don't polyfill Map.toString correctly, which
@@ -240,6 +269,53 @@ _global.beforeEach(function() {
       };
     },
 
+    toHaveCssClass: function() {
+      return {compare: buildError(false), negativeCompare: buildError(true)};
+
+      function buildError(isNot) {
+        return function(actual, className) {
+          return {
+            pass: DOM.hasClass(actual, className) == !isNot,
+            get message() {
+              return `Expected ${actual.outerHTML} ${isNot ? 'not ' : ''}to contain the CSS class "${className}"`;
+            }
+          };
+        };
+      }
+    },
+
+    toContainError: function() {
+      return {
+        compare: function(actual, expectedText) {
+          var errorMessage = actual.toString();
+          return {
+            pass: errorMessage.indexOf(expectedText) > -1,
+            get message() { return 'Expected ' + errorMessage + ' to contain ' + expectedText; }
+          };
+        }
+      };
+    },
+
+    toThrowErrorWith: function() {
+      return {
+        compare: function(actual, expectedText) {
+          try {
+            actual();
+            return {
+              pass: false,
+              get message() { return "Was expected to throw, but did not throw"; }
+            };
+          } catch (e) {
+            var errorMessage = e.toString();
+            return {
+              pass: errorMessage.indexOf(expectedText) > -1,
+              get message() { return 'Expected ' + errorMessage + ' to contain ' + expectedText; }
+            };
+          }
+        }
+      };
+    },
+
     toImplement: function() {
       return {
         compare: function(actualObject, expectedInterface) {
@@ -271,6 +347,8 @@ export interface GuinessCompatibleSpy extends jasmine.Spy {
   /** By chaining the spy with and.callFake, all calls to the spy will delegate to the supplied
    * function. */
   andCallFake(fn: Function): GuinessCompatibleSpy;
+  /** removes all recorded calls */
+  reset();
 }
 
 export class SpyObject {
@@ -292,7 +370,7 @@ export class SpyObject {
       }
     }
   }
-  // Noop so that SpyObject has the smae interface as in Dart
+  // Noop so that SpyObject has the same interface as in Dart
   noSuchMethod(args) {}
 
   spy(name) {
@@ -301,6 +379,8 @@ export class SpyObject {
     }
     return this[name];
   }
+
+  prop(name, value) { this[name] = value; }
 
   static stub(object = null, config = null, overrides = null) {
     if (!(object instanceof SpyObject)) {
@@ -314,13 +394,12 @@ export class SpyObject {
     return object;
   }
 
-  rttsAssert(value) { return true; }
-
   _createGuinnessCompatibleSpy(name): GuinessCompatibleSpy {
     var newSpy: GuinessCompatibleSpy = <any>jasmine.createSpy(name);
     newSpy.andCallFake = <any>newSpy.and.callFake;
     newSpy.andReturn = <any>newSpy.and.returnValue;
-    // return null by default to satisfy our rtts asserts
+    newSpy.reset = <any>newSpy.calls.reset;
+    // revisit return null here (previously needed for rtts_assert).
     newSpy.and.returnValue(null);
     return newSpy;
   }

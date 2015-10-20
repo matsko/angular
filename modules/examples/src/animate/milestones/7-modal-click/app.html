@@ -1,0 +1,7 @@
+<div class="container" [class.modal-active]="modal">
+  <div *ng-if="modal" class="overlay" (click)="hideModal()"></div>
+
+  <modal *ng-if="modal" class="modal"></modal>
+
+  <button class="main" (click)="showModal()">Show Modal</button>
+</div>

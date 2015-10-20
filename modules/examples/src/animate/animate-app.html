@@ -1,0 +1,7 @@
+<notification-panel></notification-panel>
+<div class="apps">
+  <a href="#" *ng-for="#app of apps" class="app">
+    <img [src]="app.icon" />
+    <strong>{{ app.title }}</strong>
+  </a>
+</div>

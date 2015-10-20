@@ -33,8 +33,8 @@ function publishModule {
 
   node scripts/publish/pubspec_cleaner.js --pubspec-file=$PUBLISH_DIR/pubspec.yaml
 
-  if [[ ! $DRY_RUN ]]; then
-    (cd $PUBLISH_DIR && pub publish)
+  if [[ "$DRY_RUN" == "false" ]]; then
+    (cd $PUBLISH_DIR && pub publish -f)
   fi;
 }
 

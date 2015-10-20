@@ -4,6 +4,7 @@
 [![Issue Stats](http://issuestats.com/github/angular/angular/badge/issue)](http://issuestats.com/github/angular/angular)
 [![npm version](https://badge.fury.io/js/angular2.svg)](http://badge.fury.io/js/angular2)
 [![Downloads](http://img.shields.io/npm/dm/angular2.svg)](https://npmjs.org/package/angular2)
+[![Sauce Test Status](https://saucelabs.com/browser-matrix/angular2-ci.svg)](https://saucelabs.com/u/angular2-ci)
 
 Angular 
 =========
@@ -19,7 +20,7 @@ applications:
 
 ## Quickstart
 
-[Get started in 5 minutes][quickstart]
+[Get started in 5 minutes][quickstart].
 
 ## Setup & Install Angular 2
 
@@ -35,7 +36,7 @@ guidelines for [contributing][contributing] and then check out one of our issues
 [contributing]: http://github.com/angular/angular/blob/master/CONTRIBUTING.md
 [dart]: http://www.dartlang.org
 [dartium]: http://www.dartlang.org/tools/dartium
-[download]: http://angular.io/download
+[download]: http://angular.io/download/
 [quickstart]: https://angular.io/docs/js/latest/quickstart.html
 [ng2]: http://angular.io
 [ngDart]: http://angulardart.org

@@ -1,57 +1,62 @@
-import {bind, Binding} from 'angular2/di';
+import {bind, Binding} from 'angular2/src/core/di';
+import {DEFAULT_PIPES} from 'angular2/src/core/pipes';
+import {AnimationBuilder} from 'angular2/src/animate/animation_builder';
+import {MockAnimationBuilder} from 'angular2/src/mock/animation_builder_mock';
 
-import {Compiler, CompilerCache} from 'angular2/src/core/compiler/compiler';
-import {Reflector, reflector} from 'angular2/src/reflection/reflection';
+import {ProtoViewFactory} from 'angular2/src/core/linker/proto_view_factory';
+import {Reflector, reflector} from 'angular2/src/core/reflection/reflection';
 import {
-  Parser,
-  Lexer,
-  ChangeDetection,
-  DynamicChangeDetection,
-  PipeRegistry,
-  defaultPipeRegistry
-} from 'angular2/change_detection';
-import {ExceptionHandler} from 'angular2/src/core/exception_handler';
-import {ViewLoader} from 'angular2/src/render/dom/compiler/view_loader';
-import {ViewResolver} from 'angular2/src/core/compiler/view_resolver';
-import {DirectiveResolver} from 'angular2/src/core/compiler/directive_resolver';
-import {DynamicComponentLoader} from 'angular2/src/core/compiler/dynamic_component_loader';
-import {ShadowDomStrategy} from 'angular2/src/render/dom/shadow_dom/shadow_dom_strategy';
-import {
-  EmulatedUnscopedShadowDomStrategy
-} from 'angular2/src/render/dom/shadow_dom/emulated_unscoped_shadow_dom_strategy';
-import {XHR} from 'angular2/src/render/xhr';
-import {ComponentUrlMapper} from 'angular2/src/core/compiler/component_url_mapper';
-import {UrlResolver} from 'angular2/src/services/url_resolver';
-import {AppRootUrl} from 'angular2/src/services/app_root_url';
-import {StyleUrlResolver} from 'angular2/src/render/dom/compiler/style_url_resolver';
-import {StyleInliner} from 'angular2/src/render/dom/compiler/style_inliner';
+  IterableDiffers,
+  defaultIterableDiffers,
+  KeyValueDiffers,
+  defaultKeyValueDiffers,
+  ChangeDetectorGenConfig
+} from 'angular2/src/core/change_detection/change_detection';
+import {ExceptionHandler} from 'angular2/src/core/facade/exceptions';
+import {ViewResolver} from 'angular2/src/core/linker/view_resolver';
+import {DirectiveResolver} from 'angular2/src/core/linker/directive_resolver';
+import {PipeResolver} from 'angular2/src/core/linker/pipe_resolver';
+import {DynamicComponentLoader} from 'angular2/src/core/linker/dynamic_component_loader';
+import {XHR} from 'angular2/src/core/compiler/xhr';
 import {NgZone} from 'angular2/src/core/zone/ng_zone';
 
-import {DOM} from 'angular2/src/dom/dom_adapter';
+import {DOM} from 'angular2/src/core/dom/dom_adapter';
 
-import {EventManager, DomEventsPlugin} from 'angular2/src/render/dom/events/event_manager';
+import {
+  EventManager,
+  DomEventsPlugin,
+  EVENT_MANAGER_PLUGINS
+} from 'angular2/src/core/render/dom/events/event_manager';
 
+import {MockDirectiveResolver} from 'angular2/src/mock/directive_resolver_mock';
 import {MockViewResolver} from 'angular2/src/mock/view_resolver_mock';
-import {MockXHR} from 'angular2/src/render/xhr_mock';
+import {MockXHR} from 'angular2/src/core/compiler/xhr_mock';
 import {MockLocationStrategy} from 'angular2/src/mock/mock_location_strategy';
 import {LocationStrategy} from 'angular2/src/router/location_strategy';
 import {MockNgZone} from 'angular2/src/mock/ng_zone_mock';
 
 import {TestComponentBuilder} from './test_component_builder';
 
-import {Injector} from 'angular2/di';
+import {Injector} from 'angular2/src/core/di';
+import {ELEMENT_PROBE_BINDINGS} from 'angular2/src/core/debug';
 
-import {List, ListWrapper} from 'angular2/src/facade/collection';
-import {FunctionWrapper, Type} from 'angular2/src/facade/lang';
+import {ListWrapper} from 'angular2/src/core/facade/collection';
+import {FunctionWrapper, Type} from 'angular2/src/core/facade/lang';
 
-import {AppViewPool, APP_VIEW_POOL_CAPACITY} from 'angular2/src/core/compiler/view_pool';
-import {AppViewManager} from 'angular2/src/core/compiler/view_manager';
-import {AppViewManagerUtils} from 'angular2/src/core/compiler/view_manager_utils';
-import {ELEMENT_PROBE_CONFIG} from 'angular2/debug';
-import {ProtoViewFactory} from 'angular2/src/core/compiler/proto_view_factory';
-import {RenderCompiler, Renderer} from 'angular2/src/render/api';
-import {DomRenderer, DOCUMENT_TOKEN} from 'angular2/src/render/dom/dom_renderer';
-import {DefaultDomCompiler} from 'angular2/src/render/dom/compiler/compiler';
+import {AppViewPool, APP_VIEW_POOL_CAPACITY} from 'angular2/src/core/linker/view_pool';
+import {AppViewManager} from 'angular2/src/core/linker/view_manager';
+import {AppViewManagerUtils} from 'angular2/src/core/linker/view_manager_utils';
+import {Renderer} from 'angular2/src/core/render/api';
+import {
+  DomRenderer,
+  DOCUMENT,
+  SharedStylesHost,
+  DomSharedStylesHost
+} from 'angular2/src/core/render/render';
+import {APP_ID} from 'angular2/src/core/application_tokens';
+import {Serializer} from "angular2/src/web_workers/shared/serializer";
+import {Log} from './utils';
+import {compilerBindings} from 'angular2/src/core/compiler/compiler';
 
 /**
  * Returns the root injector bindings.
@@ -83,54 +88,43 @@ function _getAppBindings() {
   } catch (e) {
     appDoc = null;
   }
+
   return [
-    bind(DOCUMENT_TOKEN)
-        .toValue(appDoc),
-    bind(ShadowDomStrategy)
-        .toFactory((doc) => new EmulatedUnscopedShadowDomStrategy(doc.head), [DOCUMENT_TOKEN]),
+    compilerBindings(),
+    bind(ChangeDetectorGenConfig).toValue(new ChangeDetectorGenConfig(true, true, false, true)),
+    bind(DOCUMENT).toValue(appDoc),
     DomRenderer,
-    DefaultDomCompiler,
     bind(Renderer).toAlias(DomRenderer),
-    bind(RenderCompiler).toAlias(DefaultDomCompiler),
-    ProtoViewFactory,
+    bind(APP_ID).toValue('a'),
+    DomSharedStylesHost,
+    bind(SharedStylesHost).toAlias(DomSharedStylesHost),
     AppViewPool,
     AppViewManager,
     AppViewManagerUtils,
-    ELEMENT_PROBE_CONFIG,
+    Serializer,
+    ELEMENT_PROBE_BINDINGS,
     bind(APP_VIEW_POOL_CAPACITY).toValue(500),
-    Compiler,
-    CompilerCache,
+    ProtoViewFactory,
+    bind(DirectiveResolver).toClass(MockDirectiveResolver),
     bind(ViewResolver).toClass(MockViewResolver),
-    bind(PipeRegistry).toValue(defaultPipeRegistry),
-    bind(ChangeDetection).toClass(DynamicChangeDetection),
-    ViewLoader,
+    DEFAULT_PIPES,
+    bind(IterableDiffers).toValue(defaultIterableDiffers),
+    bind(KeyValueDiffers).toValue(defaultKeyValueDiffers),
+    Log,
     DynamicComponentLoader,
-    DirectiveResolver,
-    Parser,
-    Lexer,
-    ExceptionHandler,
+    PipeResolver,
+    bind(ExceptionHandler).toValue(new ExceptionHandler(DOM)),
     bind(LocationStrategy).toClass(MockLocationStrategy),
     bind(XHR).toClass(MockXHR),
-    ComponentUrlMapper,
-    UrlResolver,
-    AppRootUrl,
-    StyleUrlResolver,
-    StyleInliner,
     TestComponentBuilder,
     bind(NgZone).toClass(MockNgZone),
-    bind(EventManager)
-        .toFactory(
-            (zone) => {
-              var plugins = [
-                new DomEventsPlugin(),
-              ];
-              return new EventManager(plugins, zone);
-            },
-            [NgZone]),
+    bind(AnimationBuilder).toClass(MockAnimationBuilder),
+    EventManager,
+    new Binding(EVENT_MANAGER_PLUGINS, {toClass: DomEventsPlugin, multi: true})
   ];
 }
 
-export function createTestInjector(bindings: List<Type | Binding | List<any>>): Injector {
+export function createTestInjector(bindings: Array<Type | Binding | any[]>): Injector {
   var rootInjector = Injector.resolveAndCreate(_getRootBindings());
   return rootInjector.resolveAndCreateChild(ListWrapper.concat(_getAppBindings(), bindings));
 }
@@ -163,23 +157,21 @@ export function createTestInjector(bindings: List<Type | Binding | List<any>>): 
  * @param {Array} tokens
  * @param {Function} fn
  * @return {FunctionWithParamTokens}
- * @exportedAs angular2/test
  */
-export function inject(tokens: List<any>, fn: Function): FunctionWithParamTokens {
+export function inject(tokens: any[], fn: Function): FunctionWithParamTokens {
   return new FunctionWithParamTokens(tokens, fn);
 }
 
 export class FunctionWithParamTokens {
-  _tokens: List<any>;
-  _fn: Function;
+  constructor(private _tokens: any[], private _fn: Function) {}
 
-  constructor(tokens: List<any>, fn: Function) {
-    this._tokens = tokens;
-    this._fn = fn;
-  }
-
-  execute(injector: Injector): void {
+  /**
+   * Returns the value of the executed function.
+   */
+  execute(injector: Injector): any {
     var params = ListWrapper.map(this._tokens, (t) => injector.get(t));
-    FunctionWrapper.apply(this._fn, params);
+    return FunctionWrapper.apply(this._fn, params);
   }
+
+  hasToken(token: any): boolean { return this._tokens.indexOf(token) > -1; }
 }

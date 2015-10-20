@@ -19,14 +19,16 @@ Future<double> runBenchmark() async {
     new AssetId('a', 'b.ng_deps.dart'): bContents,
     new AssetId('a', 'c.ng_deps.dart'): cContents,
   };
-  return new TransformerBenchmark([[new DirectiveLinker()]], files).measure();
+  return new TransformerBenchmark([
+    [new DirectiveLinker()]
+  ], files).measure();
 }
 
 const aContents = '''
 library a.ng_deps.dart;
 
 import 'package:angular2/src/core/application.dart';
-import 'package:angular2/src/reflection/reflection_capabilities.dart';
+import 'package:angular2/src/core/reflection/reflection_capabilities.dart';
 import 'b.dart';
 
 bool _visited = false;
@@ -39,18 +41,18 @@ const bContents = '''
 library b.ng_deps.dart;
 
 import 'b.dart';
-import 'package:angular2/src/core/annotations/annotations.dart';
+import 'package:angular2/src/core/metadata.dart';
 
 bool _visited = false;
 void initReflector(reflector) {
   if (_visited) return;
   _visited = true;
   reflector
-    ..registerType(DependencyComponent, {
-      'factory': () => new DependencyComponent(),
-      'parameters': const [],
-      'annotations': const [const Component(selector: '[salad]')]
-    });
+    ..registerType(DependencyComponent, new ReflectionInfo(
+      const [const Component(selector: '[salad]')],
+      const [],
+      () => new DependencyComponent()
+    ));
 }
 ''';
 
@@ -58,7 +60,7 @@ const cContents = '''
 library c.ng_deps.dart;
 
 import 'c.dart';
-import 'package:angular2/src/core/annotations/annotations.dart';
+import 'package:angular2/src/core/metadata.dart';
 import 'b.dart' as dep;
 
 bool _visited = false;
@@ -66,12 +68,12 @@ void initReflector(reflector) {
   if (_visited) return;
   _visited = true;
   reflector
-    ..registerType(MyComponent, {
-      'factory': () => new MyComponent(),
-      'parameters': const [],
-      'annotations': const [
+    ..registerType(MyComponent, new ReflectionInfo(
+      const [
         const Component(
             selector: '[soup]', services: const [dep.DependencyComponent])
-      ]
-    });
+      ],
+      const [],
+      () => new MyComponent()
+    ));
 }''';

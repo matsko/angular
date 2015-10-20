@@ -1,22 +1,30 @@
-import {bootstrap, ElementRef, ComponentRef, Component, View} from 'angular2/angular2';
+import {bootstrap} from 'angular2/bootstrap';
+import {
+  bind,
+  ElementRef,
+  ComponentRef,
+  Component,
+  UrlResolver,
+  View,
+  ViewEncapsulation
+} from 'angular2/core';
 import {
   MdDialog,
   MdDialogRef,
   MdDialogConfig
 } from 'angular2_material/src/components/dialog/dialog';
-import {UrlResolver} from 'angular2/src/services/url_resolver';
 import {commonDemoSetup, DemoUrlResolver} from '../demo_common';
-import {bind} from 'angular2/di';
-import {isPresent} from 'angular2/src/facade/lang';
+import {isPresent} from 'angular2/src/core/facade/lang';
 
 
 @Component({
   selector: 'demo-app',
-  viewInjector: [MdDialog],
+  viewBindings: [MdDialog],
 })
 @View({
   templateUrl: './demo_app.html',
   directives: [],
+  encapsulation: ViewEncapsulation.None,
 })
 class DemoApp {
   dialog: MdDialog;
@@ -59,15 +67,16 @@ class DemoApp {
 
 @Component({
   selector: 'simple-dialog',
-  properties: ['numCoconuts'],
+  inputs: ['numCoconuts'],
 })
 @View({
+  encapsulation: ViewEncapsulation.None,
   template: `
     <h2>This is the dialog content</h2>
     <p>There are {{numCoconuts}} coconuts.</p>
     <p>Return: <input (input)="updateValue($event)"></p>
     <button type="button" (click)="done()">Done</button>
-  `,
+  `
 })
 class SimpleDialogComponent {
   numCoconuts: number;

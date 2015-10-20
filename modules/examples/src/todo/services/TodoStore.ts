@@ -1,5 +1,5 @@
 import {Injectable} from 'angular2/angular2';
-import {ListWrapper} from 'angular2/src/facade/collection';
+import {ListWrapper, Predicate} from 'angular2/src/core/facade/collection';
 
 // base model for RecordStore
 export class KeyModel {
@@ -24,13 +24,13 @@ export class TodoFactory {
 // Store manages any generic item that inherits from KeyModel
 @Injectable()
 export class Store {
-  list: List<KeyModel> = [];
+  list: KeyModel[] = [];
 
   add(record: KeyModel): void { this.list.push(record); }
 
   remove(record: KeyModel): void { this._spliceOut(record); }
 
-  removeBy(callback: Function): void {
+  removeBy(callback: Predicate<KeyModel>): void {
     var records = ListWrapper.filter(this.list, callback);
     ListWrapper.removeAll(this.list, records);
   }

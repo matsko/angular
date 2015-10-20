@@ -1,8 +1,7 @@
-import {DateWrapper, isPresent, isBlank, Json} from 'angular2/src/facade/lang';
-import {List} from 'angular2/src/facade/collection';
-import {Promise, PromiseWrapper} from 'angular2/src/facade/async';
+import {DateWrapper, isPresent, isBlank, Json} from 'angular2/src/core/facade/lang';
+import {Promise, PromiseWrapper} from 'angular2/src/core/facade/async';
 
-import {bind, Binding, OpaqueToken} from 'angular2/di';
+import {bind, Binding, OpaqueToken} from 'angular2/src/core/di';
 
 import {Reporter} from '../reporter';
 import {SampleDescription} from '../sample_description';
@@ -16,7 +15,7 @@ export class JsonFileReporter extends Reporter {
   // TODO(tbosch): use static values when our transpiler supports them
   static get PATH(): OpaqueToken { return _PATH; }
   // TODO(tbosch): use static values when our transpiler supports them
-  static get BINDINGS(): List<Binding> { return _BINDINGS; }
+  static get BINDINGS(): Binding[] { return _BINDINGS; }
 
   _writeFile: Function;
   _path: string;
@@ -35,8 +34,7 @@ export class JsonFileReporter extends Reporter {
     return PromiseWrapper.resolve(null);
   }
 
-  reportSample(completeSample: List<MeasureValues>,
-               validSample: List<MeasureValues>): Promise<any> {
+  reportSample(completeSample: MeasureValues[], validSample: MeasureValues[]): Promise<any> {
     var content = Json.stringify({
       'description': this._description,
       'completeSample': completeSample,

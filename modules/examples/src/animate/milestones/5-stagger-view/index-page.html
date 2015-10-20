@@ -1,0 +1,36 @@
+<div class="index-details">
+  <h2 class="display-4">Index Page</h2>
+
+  <div class="special-users-list">
+    <a [page-link]="['/Profile', { id: user.id }]" *ng-for="#user of specialUsers" class="special-user">
+      <img src="./user.png" class="user" />
+      <span>{{ user.name }}</span>
+    </a>
+  </div>
+</div>
+
+<div class="users-details">
+  <h2 class="display-4">All Users</h2>
+  <table table class="users-list mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Age</th>
+      <th>Email</th>
+    </tr>
+    <tr *ng-for="#user of users">
+      <td>
+        <a [page-link]="['/Profile', { id: user.id }]">{{ user.id }}</a>
+      </td>
+      <td>
+        <a [page-link]="['/Profile', { id: user.id }]">{{ user.name }}</a>
+      </td>
+      <td>
+        {{ user.age }}
+      </td>
+      <td>
+        {{ user.email }}
+      </td>
+    </tr>
+  </table>
+</div>

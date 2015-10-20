@@ -11,8 +11,9 @@ import {
   containsRegexp
 } from 'angular2/test_lib';
 
-import {MapWrapper} from 'angular2/src/facade/collection';
-import {IMPLEMENTS, RegExpWrapper} from 'angular2/src/facade/lang';
+import {DOM} from 'angular2/src/core/dom/dom_adapter';
+import {MapWrapper} from 'angular2/src/core/facade/collection';
+import {RegExpWrapper} from 'angular2/src/core/facade/lang';
 
 class TestObj {
   prop;
@@ -21,8 +22,6 @@ class TestObj {
   someComplexFunc(a) { return a; }
 }
 
-@proxy
-@IMPLEMENTS(TestObj)
 class SpyTestObj extends SpyObject {
   constructor() { super(TestObj); }
   noSuchMethod(m) { return super.noSuchMethod(m) }
@@ -39,6 +38,20 @@ export function main() {
 
         expect(actual).toEqual(expected);
         expect(falseActual).not.toEqual(expected);
+      });
+    });
+
+    describe("toHaveCssClass", () => {
+      it("should assert that the CSS class is present", () => {
+        var el = DOM.createElement('div');
+        DOM.addClass(el, 'matias');
+        expect(el).toHaveCssClass('matias');
+      });
+
+      it("should assert that the CSS class is not present", () => {
+        var el = DOM.createElement('div');
+        DOM.addClass(el, 'matias');
+        expect(el).not.toHaveCssClass('fatias');
       });
     });
 
@@ -73,11 +86,6 @@ export function main() {
       var spyObj;
 
       beforeEach(() => { spyObj = <any>new SpyTestObj(); });
-
-      it("should pass the runtime check", () => {
-        var t: TestObj = spyObj;
-        expect(t).toBeDefined();
-      });
 
       it("should return a new spy func with no calls",
          () => { expect(spyObj.spy("someFunc")).not.toHaveBeenCalled(); });
@@ -117,8 +125,7 @@ export function main() {
          () => { expect(() => spyObj.someFunc()).not.toThrow(); });
 
       it('should create a default spy that does not fail for numbers', () => {
-        // Need to return null instead of undefined so that rtts assert does
-        // not fail...
+        // Previously needed for rtts_assert. Revisit this behavior.
         expect(spyObj.someFunc()).toBe(null);
       });
     });

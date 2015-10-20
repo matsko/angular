@@ -22,8 +22,8 @@ import {
   WebDriverAdapter,
   SampleState
 } from 'benchpress/common';
-import {isBlank} from 'angular2/src/facade/lang';
-import {Promise, PromiseWrapper} from 'angular2/src/facade/async';
+import {isBlank} from 'angular2/src/core/facade/lang';
+import {Promise, PromiseWrapper} from 'angular2/src/core/facade/async';
 
 export function main() {
   describe('runner', () => {
@@ -153,5 +153,5 @@ class MockMetric extends Metric {
 
 class MockSampler extends Sampler {
   constructor() { super(); }
-  sample(): Promise<SampleState> { return PromiseWrapper.resolve(23); }
+  sample(): Promise<SampleState> { return PromiseWrapper.resolve(new SampleState([], [])); }
 }

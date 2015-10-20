@@ -1,6 +1,6 @@
-import {Directive, onAllChangesDone, Attribute, Parent} from 'angular2/angular2';
+import {Directive, Attribute, Host, SkipSelf, AfterContentChecked} from 'angular2/angular2';
 
-import {ObservableWrapper, EventEmitter} from 'angular2/src/facade/async';
+import {ObservableWrapper, EventEmitter} from 'angular2/src/core/facade/async';
 
 // TODO(jelbourn): validation (will depend on Forms API).
 // TODO(jelbourn): textarea resizing
@@ -9,11 +9,12 @@ import {ObservableWrapper, EventEmitter} from 'angular2/src/facade/async';
 
 @Directive({
   selector: 'md-input-container',
-  lifecycle: [onAllChangesDone],
-  host:
-      {'[class.md-input-has-value]': 'inputHasValue', '[class.md-input-focused]': 'inputHasFocus'}
+  host: {
+    '[class.md-input-has-value]': 'inputHasValue',
+    '[class.md-input-focused]': 'inputHasFocus',
+  }
 })
-export class MdInputContainer {
+export class MdInputContainer implements AfterContentChecked {
   // The MdInput or MdTextarea inside of this container.
   _input: MdInput;
 
@@ -29,7 +30,7 @@ export class MdInputContainer {
     this.inputHasFocus = false;
   }
 
-  onAllChangesDone() {
+  afterContentChecked() {
     // Enforce that this directive actually contains a text input.
     if (this._input == null) {
       throw 'No <input> or <textarea> found inside of <md-input-container>';
@@ -49,16 +50,17 @@ export class MdInputContainer {
     // classes based on the input state.
     ObservableWrapper.subscribe(input.mdChange, value => { this.inputHasValue = value != ''; });
 
-    ObservableWrapper.subscribe(input.mdFocusChange, hasFocus => {this.inputHasFocus = hasFocus});
+    ObservableWrapper.subscribe<boolean>(input.mdFocusChange,
+                                         hasFocus => this.inputHasFocus = hasFocus);
   }
 }
 
 
 @Directive({
   selector: 'md-input-container input',
-  events: ['mdChange', 'mdFocusChange'],
+  outputs: ['mdChange', 'mdFocusChange'],
   host: {
-    '[class.md-input]': 'yes',
+    'class': 'md-input',
     '(input)': 'updateValue($event)',
     '(focus)': 'setHasFocus(true)',
     '(blur)': 'setHasFocus(false)'
@@ -66,18 +68,14 @@ export class MdInputContainer {
 })
 export class MdInput {
   value: string;
-  yes: boolean;
 
   // Events emitted by this directive. We use these special 'md-' events to communicate
   // to the parent MdInputContainer.
   mdChange: EventEmitter;
   mdFocusChange: EventEmitter;
 
-  constructor(@Attribute('value') value: string, @Parent() container: MdInputContainer,
+  constructor(@Attribute('value') value: string, @SkipSelf() @Host() container: MdInputContainer,
               @Attribute('id') id: string) {
-    // TODO(jelbourn): Remove this when #1402 is done.
-    this.yes = true;
-
     this.value = value == null ? '' : value;
     this.mdChange = new EventEmitter();
     this.mdFocusChange = new EventEmitter();
@@ -94,26 +92,3 @@ export class MdInput {
     ObservableWrapper.callNext(this.mdFocusChange, hasFocus);
   }
 }
-
-/*
-@Directive({
-  selector: 'md-input-container textarea',
-  events: ['mdChange', 'mdFocusChange'],
-  hostProperties: {
-    'yes': 'class.md-input'
-  },
-  hostListeners: {
-    'input': 'updateValue($event)',
-    'focus': 'setHasFocus(true)',
-    'blur': 'setHasFocus(false)'
-  }
-})
-export class MdTextarea extends MdInput {
-  constructor(
-      @Attribute('value') value: string,
-      @Parent() container: MdInputContainer,
-      @Attribute('id') id: string) {
-    super(value, container, id);
-  }
-}
-*/

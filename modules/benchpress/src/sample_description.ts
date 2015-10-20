@@ -1,5 +1,5 @@
-import {StringMapWrapper, ListWrapper, List, StringMap} from 'angular2/src/facade/collection';
-import {bind, Binding, OpaqueToken} from 'angular2/di';
+import {StringMapWrapper, ListWrapper} from 'angular2/src/core/facade/collection';
+import {bind, Binding, OpaqueToken} from 'angular2/src/core/di';
 import {Validator} from './validator';
 import {Metric} from './metric';
 import {Options} from './common_options';
@@ -9,11 +9,11 @@ import {Options} from './common_options';
  */
 export class SampleDescription {
   // TODO(tbosch): use static values when our transpiler supports them
-  static get BINDINGS(): List<Binding> { return _BINDINGS; }
-  description: StringMap<string, any>;
+  static get BINDINGS(): Binding[] { return _BINDINGS; }
+  description: {[key: string]: any};
 
-  constructor(public id: string, descriptions: List<StringMap<string, any>>,
-              public metrics: StringMap<string, any>) {
+  constructor(public id: string, descriptions: Array<{[key: string]: any}>,
+              public metrics: {[key: string]: any}) {
     this.description = {};
     ListWrapper.forEach(descriptions, (description) => {
       StringMapWrapper.forEach(description, (value, prop) => this.description[prop] = value);

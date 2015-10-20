@@ -1,14 +1,14 @@
-import {Promise, PromiseWrapper} from 'angular2/src/facade/async';
-import {bind, Binding} from 'angular2/di';
+import {Promise, PromiseWrapper} from 'angular2/src/core/facade/async';
+import {bind, Binding} from 'angular2/src/core/di';
 import {WebDriverAdapter} from '../web_driver_adapter';
 
-import webdriver = require('selenium-webdriver');
+import * as webdriver from 'selenium-webdriver';
 
 /**
  * Adapter for the selenium-webdriver.
  */
 export class SeleniumWebDriverAdapter extends WebDriverAdapter {
-  static get PROTRACTOR_BINDINGS(): List<Binding> { return _PROTRACTOR_BINDINGS; }
+  static get PROTRACTOR_BINDINGS(): Binding[] { return _PROTRACTOR_BINDINGS; }
 
   constructor(private _driver: any) { super(); }
 
@@ -17,7 +17,7 @@ export class SeleniumWebDriverAdapter extends WebDriverAdapter {
     thenable.then(
         // selenium-webdriver uses an own Node.js context,
         // so we need to convert data into objects of this context.
-        // (e.g. otherwise instanceof checks of rtts_assert would fail)
+        // Previously needed for rtts_asserts.
         (data) => completer.resolve(convertToLocalProcess(data)), completer.reject);
     return completer.promise;
   }
@@ -56,5 +56,7 @@ function convertToLocalProcess(data): Object {
   return JSON.parse(serialized);
 }
 
-var _PROTRACTOR_BINDINGS =
-    [bind(WebDriverAdapter).toFactory(() => new SeleniumWebDriverAdapter(global.browser), [])];
+var _PROTRACTOR_BINDINGS = [
+  bind(WebDriverAdapter)
+      .toFactory(() => new SeleniumWebDriverAdapter((<any>global).browser), [])
+];

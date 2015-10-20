@@ -1,6 +1,6 @@
-import {Math} from 'angular2/src/facade/math';
-
-import {ListWrapper, Map, MapWrapper} from 'angular2/src/facade/collection';
+import {Math} from 'angular2/src/core/facade/math';
+import {StringWrapper} from 'angular2/src/core/facade/lang';
+import {ListWrapper, Map, MapWrapper} from 'angular2/src/core/facade/collection';
 
 export var ITEMS = 1000;
 export var ITEM_HEIGHT = 40;
@@ -66,7 +66,7 @@ export class RawEntity {
     var pieces = key.split('.');
     var last = ListWrapper.last(pieces);
     pieces.length = pieces.length - 1;
-    var target = _resolve(pieces, this);
+    var target = this._resolve(pieces, this);
     if (target == null) {
       return null;
     }
@@ -81,18 +81,18 @@ export class RawEntity {
     var pieces = key.split('.');
     var last = ListWrapper.last(pieces);
     pieces.length = pieces.length - 1;
-    var target = _resolve(pieces, this);
+    var target = this._resolve(pieces, this);
     target[last] = value;
   }
 
   remove(key: string) {
-    if (!key.contains('.')) {
+    if (!StringWrapper.contains(key, '.')) {
       return MapWrapper.delete(this._data, key);
     }
     var pieces = key.split('.');
     var last = ListWrapper.last(pieces);
     pieces.length = pieces.length - 1;
-    var target = _resolve(pieces, this);
+    var target = this._resolve(pieces, this);
     return target.remove(last);
   }
 

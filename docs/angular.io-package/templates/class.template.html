@@ -8,7 +8,20 @@ p.location-badge.
   defined in {$ githubViewLink(doc) $}
 
 :markdown
-{$ doc.description | indent(2, true) $}
+{$ doc.description | indent(2, true) | trimBlankLines $}
+
+{%- if doc.decorators %}
+.l-main-section
+  h2 Annotations
+{%- for decorator in doc.decorators %}
+  .l-sub-section
+    h3.annotation {$ decorator.name $}
+    pre.prettyprint
+      code.
+        @{$ decorator.name $}{$ paramList(decorator.arguments) | indent(8, false) $}
+{% endfor %}
+{% endif -%}
+
 
 {%- if doc.constructorDoc or doc.members.length -%}
 .l-main-section
@@ -16,31 +29,30 @@ p.location-badge.
 
 {%- if doc.constructorDoc %}
   .l-sub-section
-    h3 {$ doc.constructorDoc.name $}
+    h3#{$ doc.constructorDoc.name | toId $} {$ doc.constructorDoc.name $}
 
     {% if doc.constructorDoc.parameters %}
     pre.prettyprint
       code.
-        {$ doc.constructorDoc.name $}{$ paramList(doc.constructorDoc.parameters) | indent(4, true) | trim $}
+        {$ doc.constructorDoc.name $}{$ paramList(doc.constructorDoc.parameters) | indent(8, false) | trim $}
     {% endif %}
     :markdown
-{$ doc.constructorDoc.description | indent(6, true) | replace('## Example', '') | replace('# Example', '') $}
+{$ doc.constructorDoc.description | indent(6, true) | replace('## Example', '') | replace('# Example', '') | trimBlankLines $}
 
 
 {% endif -%}
 
 {%- for member in doc.members %}{% if not member.private %}
   .l-sub-section
-    h3 {$ member.name $}{% if member.optional %}?{% endif %}
+    h3#{$ member.name | toId $} {$ member.name $}{% if member.optional %}?{% endif %}
 
     {% if member.parameters %}
     pre.prettyprint
       code.
-        {$ member.name $}{$ paramList(member.parameters) | indent(4, true) | trim $}{$ returnType(doc.returnType) $}
+        {$ member.name $}{$ paramList(member.parameters) | indent(8, false) | trim $}{$ returnType(doc.returnType) $}
     {% endif %}
     :markdown
-
-{$ member.description | indent(6, true) | replace('## Example', '') | replace('# Example', '')  $}
+{$ member.description | indent(6, true) | replace('## Example', '') | replace('# Example', '') | trimBlankLines $}
 
 
 

@@ -4,22 +4,24 @@ var spawn = require('child_process').spawn;
 var path = require('path');
 var glob = require('glob');
 var fs = require('fs');
+var travisFoldStart = require('../travis/travis-fold');
 var util = require('./util');
 var yaml = require('js-yaml');
 
 module.exports = function(gulp, plugins, config) {
   return function() {
+    var travisFoldEnd = travisFoldStart(`dartanalyzer-${config.use_ddc ? 'ddc' : ''}-${config.dest}`);
     var tempFile = '_analyzer.dart';
+
     return util.forEachSubDirSequential(config.dest, function(dir) {
       var pubspecContents = fs.readFileSync(path.join(dir, 'pubspec.yaml'));
       var pubspec = yaml.safeLoad(pubspecContents);
       var packageName = pubspec.name;
 
       var libFiles = [].slice.call(glob.sync('lib/**/*.dart', {cwd: dir}));
-
       var webFiles = [].slice.call(glob.sync('web/**/*.dart', {cwd: dir}));
-
       var testFiles = [].slice.call(glob.sync('test/**/*_spec.dart', {cwd: dir}));
+
       var analyzeFile = ['library _analyzer;'];
       libFiles.concat(testFiles).concat(webFiles).forEach(function(fileName, index) {
         if (fileName !== tempFile && fileName.indexOf("/packages/") === -1) {
@@ -31,13 +33,24 @@ module.exports = function(gulp, plugins, config) {
       });
       fs.writeFileSync(path.join(dir, tempFile), analyzeFile.join('\n'));
       var defer = Q.defer();
-      analyze(dir, defer.makeNodeResolver());
+      if (config.use_ddc) {
+        analyze(dir, defer.makeNodeResolver(), true);
+      } else {
+        analyze(dir, defer.makeNodeResolver());
+      }
       return defer.promise;
-    });
+    }).then(travisFoldEnd);
 
-    function analyze(dirName, done) {
+    function analyze(dirName, done, useDdc) {
       // TODO remove --package-warnings once dartanalyzer handles transitive libraries
-      var args = ['--fatal-warnings', '--package-warnings', '--format=machine'].concat(tempFile);
+      var flags = ['--fatal-warnings', '--package-warnings', '--format=machine'];
+
+      if (useDdc) {
+        console.log('Using DDC analyzer to analyze', dirName);
+        flags.push('--strong');
+      }
+
+      var args = flags.concat(tempFile);
 
       var stream = spawn(config.command, args, {
         // inherit stdin and stderr, but filter stdout
@@ -97,6 +110,9 @@ module.exports = function(gulp, plugins, config) {
         if (report.length > 0) {
           error = 'Dartanalyzer showed ' + report.join(', ');
         }
+        done(error);
+      });
+      stream.on('error', function(error) {
         done(error);
       });
     }
@@ -162,6 +178,11 @@ _AnalyzerOutputLine.prototype = {
         return true;
       }
     }
+
+    if (this.errorCode.match(/DEPRECATED_MEMBER_USE/i)) {
+      return true;
+    }
+
     // TODO: https://github.com/angular/ts2dart/issues/168
     if (this.errorCode.match(/UNUSED_CATCH_STACK/i)) {
       return true;

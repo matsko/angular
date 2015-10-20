@@ -1,0 +1,180 @@
+* {
+  box-sizing:border-box;
+}
+
+body {
+  padding:50px 0;
+  background:#eee;
+}
+
+.stage {
+  width:80%;
+  margin:0 auto;
+  display:table;
+  border:5px solid #555;
+  min-height:500px;
+}
+
+.apps, .line {
+  box-shadow:inset #aaa 0 0 10px;
+  display:table-cell;
+  position:relative;
+  vertical-align:top;
+}
+
+.apps {
+  overflow:hidden;
+  padding:5%;
+  width:70%;
+  border-right:5px solid #555;
+}
+
+.line {
+  background:#ddd;
+}
+
+.dial {
+  position:relative;
+  height:100px;
+}
+
+.dial .inner {
+  width:80px; height:80px;
+  border:2px solid black;
+  position:absolute;
+  top:0;
+  left:0;
+}
+
+.dial.red .inner { background:red; }
+.dial.blue .inner { background:blue; }
+.dial.green .inner { background:green; }
+.dial.white .inner { background:white; }
+
+.dial:before {
+  content:"";
+  border-bottom:5px solid #ccc;
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(50% - 5px);
+}
+
+.line:before {
+  content:"";
+  position:absolute;
+  top:110px;
+  left:calc(50% - 3px);
+  bottom:110px;
+  border-left:5px dashed #ccc;
+}
+
+.box {
+  border:2px solid black;
+  height:50px;
+  position:relative;
+}
+
+.box.start-box {
+  background:white;
+  cursor:move;
+  position:absolute;
+  top:30px;
+  right:30px;
+  left:30px;
+}
+
+.box.end-box {
+  border:5px dashed #ccc;
+  position:absolute;
+  bottom:30px;
+  right:30px;
+  left:30px;
+  transition:0.5s linear all;
+}
+
+.box.start-box:before {
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:40px;
+  text-align:center;
+  font-size:40px;
+  line-height:40px;
+  content:"---";
+}
+
+.box.end-box.active {
+  background:
+}
+
+.apps > .app {
+  width:25%;
+  display:inline-block;
+  height:auto;
+  text-align:center;
+  padding:10px;
+}
+
+.apps > .app > img {
+  width:100%;
+}
+
+notifications {
+  color:white;
+  display:block;
+  position:absolute;
+  top:-1000px;
+  left:50px;
+  border:2px solid black;
+  right:50px;
+  background:rgba(0,0,0,0.9);
+  border:5px solid #555;
+  border-top:0;
+}
+
+notifications .content {
+  overflow:hidden;
+  border-top:2px solid white;
+  background:#222;
+  padding:10px;
+}
+
+notifications .header {
+  padding:10px;
+  background:#444;
+  position:relative;
+}
+
+notifications .heading {
+  font-size:20px;
+  margin:0;
+  padding:0;
+}
+
+notifications .actions {
+  font-size:20px;
+  position:absolute;
+  top:10px;
+  right:10px;
+}
+
+.settings-icons {
+  text-align:center;
+}
+.settings-icons > .setting-icon {
+  width:100px;
+  height:100px;
+  background:#555;
+  text-align:center;
+  display:inline-block;
+  border:2px solid #999;
+  margin:20px 50px;
+}
+
+.settings-icons > .setting-icon > span:before,
+.settings-icons > .setting-icon > span:after {
+  font-size:80px;
+  line-height:100px;
+}

@@ -16,8 +16,9 @@ allTests() {
 Future runBenchmark() async {
   var options = new TransformerOptions(['index.dart']);
   var files = {new AssetId('a', 'web/a.ng_deps.dart'): aContents,};
-  return new TransformerBenchmark([[new TemplateCompiler(options)]], files)
-      .measure();
+  return new TransformerBenchmark([
+    [new TemplateCompiler(options)]
+  ], files).measure();
 }
 
 const aContents = '''
@@ -32,14 +33,14 @@ void initReflector(reflector) {
   if (_visited) return;
   _visited = true;
   reflector
-    ..registerType(HelloCmp, {
-      'factory': () => new HelloCmp(),
-      'parameters': const [const []],
-      'annotations': const [
+    ..registerType(HelloCmp, new ReflectionInfo(
+      const [
         const Component(selector: 'hello-app'),
         const Template(
             inline: '<button (click)="action()">go</button>{{greeting}}')
-      ]
-    });
+      ],
+      const [const []],
+      () => new HelloCmp()
+    ));
 }
 ''';

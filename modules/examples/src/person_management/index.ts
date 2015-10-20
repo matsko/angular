@@ -1,23 +1,18 @@
+import {bootstrap} from 'angular2/bootstrap';
 import {
-  bootstrap,
-  onChange,
   NgIf,
   NgFor,
   Component,
   Directive,
   View,
-  Ancestor,
-  NgValidator,
+  Host,
   forwardRef,
-  Binding
-} from 'angular2/angular2';
+  Binding,
+  FORM_DIRECTIVES,
+  Injectable
+} from 'angular2/core';
 
-import {formDirectives} from 'angular2/forms';
-
-import {RegExpWrapper, print, isPresent, CONST_EXPR} from 'angular2/src/facade/lang';
-
-import {reflector} from 'angular2/src/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/reflection/reflection_capabilities';
+import {CONST_EXPR} from 'angular2/src/core/facade/lang';
 
 
 /**
@@ -53,6 +48,7 @@ class Person {
 
 // ---- services
 
+@Injectable()
 class DataService {
   currentPerson: Person;
   persons: Person[];
@@ -93,113 +89,113 @@ class DataService {
 @Component({selector: 'full-name-cmp'})
 @View({
   template: `
-    <h1>Edit Full Name</h1>   
+    <h1>Edit Full Name</h1>
     <div>
       <form>
           <div>
             <label>
               First: <input [(ng-model)]="person.firstName" type="text" placeholder="First name">
-            </label>          
+            </label>
           </div>
-  
+
           <div>
             <label>
               Last: <input [(ng-model)]="person.lastName" type="text" placeholder="Last name">
-            </label>  
+            </label>
           </div>
-  
+
           <div>
             <label>{{person.fullName}}</label>
           </div>
-      </form>  
+      </form>
     </div>
   `,
-  directives: [formDirectives]
+  directives: [FORM_DIRECTIVES]
 })
 class FullNameComponent {
-  constructor(private service: DataService) {}
-  get person(): Person { return this.service.currentPerson; }
+  constructor(private _service: DataService) {}
+  get person(): Person { return this._service.currentPerson; }
 }
 
 @Component({selector: 'person-detail-cmp'})
 @View({
   template: `
     <h2>{{person.fullName}}</h2>
-    
+
     <div>
       <form>
-        <div>              
-					<label>First: <input [(ng-model)]="person.firstName" type="text" placeholder="First name"></label> 
-				</div>              
-        
-        <div>              
-					<label>Last: <input [(ng-model)]="person.lastName" type="text" placeholder="Last name"></label> 
+        <div>
+					<label>First: <input [(ng-model)]="person.firstName" type="text" placeholder="First name"></label>
 				</div>
-        
-        <div>              
-					<label>Year of birth: <input [(ng-model)]="person.yearOfBirth" type="number" placeholder="Year of birth"></label> 
+
+        <div>
+					<label>Last: <input [(ng-model)]="person.lastName" type="text" placeholder="Last name"></label>
+				</div>
+
+        <div>
+					<label>Year of birth: <input [(ng-model)]="person.yearOfBirth" type="number" placeholder="Year of birth"></label>
           Age: {{person.age}}
 				</div>\
-        
-        <div *ng-if="person.mom != null">              
-					<label>Mom:</label> 
+
+        <div *ng-if="person.mom != null">
+					<label>Mom:</label>
           <input [(ng-model)]="person.mom.firstName" type="text" placeholder="Mom's first name">
           <input [(ng-model)]="person.mom.lastName" type="text" placeholder="Mom's last name">
-          {{person.mom.fullName}}     
+          {{person.mom.fullName}}
 				</div>
-        
-        <div *ng-if="person.dad != null">              
-					<label>Dad:</label> 
+
+        <div *ng-if="person.dad != null">
+					<label>Dad:</label>
           <input [(ng-model)]="person.dad.firstName" type="text" placeholder="Dad's first name">
           <input [(ng-model)]="person.dad.lastName" type="text" placeholder="Dad's last name">
-          {{person.dad.fullName}}     
+          {{person.dad.fullName}}
 				</div>
-          
-        <div *ng-if="person.friends.length > 0">              
-					<label>Friends:</label> 
+
+        <div *ng-if="person.friends.length > 0">
+					<label>Friends:</label>
           {{person.friendNames}}
 				</div>
       </form>
     </div>
   `,
-  directives: [formDirectives, NgIf]
+  directives: [FORM_DIRECTIVES, NgIf]
 })
 class PersonsDetailComponent {
-  constructor(private service: DataService) {}
-  get person(): Person { return this.service.currentPerson; }
+  constructor(private _service: DataService) {}
+  get person(): Person { return this._service.currentPerson; }
 }
 
 @Component({selector: 'persons-cmp'})
 @View({
   template: `
-    <h1>FullName Demo</h1>   
+    <h1>FullName Demo</h1>
     <div>
       <ul>
-  		  <li *ng-for="#person of persons">  
+  		  <li *ng-for="#person of persons">
   			  <label (click)="select(person)">{{person.fullName}}</label>
-  			</li>			
+  			</li>
   	 </ul>
-     
+
      <person-detail-cmp></person-detail-cmp>
     </div>
   `,
-  directives: [formDirectives, PersonsDetailComponent, NgFor]
+  directives: [FORM_DIRECTIVES, PersonsDetailComponent, NgFor]
 })
 class PersonsComponent {
   persons: Person[];
 
-  constructor(private service: DataService) { this.persons = service.persons; }
+  constructor(private _service: DataService) { this.persons = _service.persons; }
 
-  select(person: Person): void { this.service.currentPerson = person; }
+  select(person: Person): void { this._service.currentPerson = person; }
 }
 
 
-@Component({selector: 'person-management-app', viewInjector: [DataService]})
+@Component({selector: 'person-management-app', viewBindings: [DataService]})
 @View({
   template: `
     <button (click)="switchToEditName()">Edit Full Name</button>
-    <button (click)="switchToPersonList()">Person List</button>
-    
+    <button (click)="switchToPersonList()">Person Array</button>
+
     <full-name-cmp *ng-if="mode == 'editName'"></full-name-cmp>
     <persons-cmp *ng-if="mode == 'personList'"></persons-cmp>
   `,
@@ -213,6 +209,5 @@ class PersonManagementApplication {
 }
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
   bootstrap(PersonManagementApplication);
 }

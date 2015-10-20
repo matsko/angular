@@ -1,0 +1,15 @@
+<button [class.active]="state=='one'" (click)="state='one'">One</button>
+<button [class.active]="state=='two'" (click)="state='two'">Two</button>
+<button [class.active]="state=='three'" (click)="state='three'">Three</button>
+
+<hr />
+
+<div [attr.state]="state">
+  <h2>Title</h2>
+  <p>
+    Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod
+    tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At
+    vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren,
+    no sea takimata sanctus est Lorem ipsum dolor sit amet.
+  </p>
+</div>

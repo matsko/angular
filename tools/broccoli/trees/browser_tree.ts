@@ -2,6 +2,7 @@
 
 var Funnel = require('broccoli-funnel');
 var htmlReplace = require('../html-replace');
+var jsReplace = require('../js-replace');
 var path = require('path');
 var stew = require('broccoli-stew');
 
@@ -10,7 +11,14 @@ import destCopy from '../broccoli-dest-copy';
 import flatten from '../broccoli-flatten';
 import mergeTrees from '../broccoli-merge-trees';
 import replace from '../broccoli-replace';
-import {default as transpileWithTraceur, TRACEUR_RUNTIME_PATH} from '../traceur/index';
+
+function replaceContentWithBaseDir(token, filePath, exp) {
+  var baseDir = '';
+  if (filePath) {
+    baseDir = '/' + filePath.match(exp)[0];
+  }
+  return htmlReplace(token, baseDir);
+}
 
 
 var projectRootDir = path.normalize(path.join(__dirname, '..', '..', '..', '..'));
@@ -27,6 +35,7 @@ const kServedPaths = [
   'benchmarks/src/largetable',
   'benchmarks/src/naive_infinite_scroll',
   'benchmarks/src/tree',
+  'benchmarks/src/static_tree',
 
   // Relative (to /modules) paths to external benchmark directories
   'benchmarks_external/src',
@@ -35,8 +44,10 @@ const kServedPaths = [
   'benchmarks_external/src/naive_infinite_scroll',
   'benchmarks_external/src/tree',
   'benchmarks_external/src/tree/react',
+  'benchmarks_external/src/static_tree',
 
   // Relative (to /modules) paths to example directories
+  'examples/src/animate',
   'examples/src/benchpress',
   'examples/src/model_driven_forms',
   'examples/src/template_driven_forms',
@@ -45,10 +56,13 @@ const kServedPaths = [
   'examples/src/gestures',
   'examples/src/hello_world',
   'examples/src/http',
+  'examples/src/jsonp',
   'examples/src/key_events',
+  'examples/src/routing',
   'examples/src/sourcemap',
   'examples/src/todo',
   'examples/src/zippy_component',
+  'examples/src/async',
   'examples/src/material/button',
   'examples/src/material/checkbox',
   'examples/src/material/dialog',
@@ -56,75 +70,90 @@ const kServedPaths = [
   'examples/src/material/input',
   'examples/src/material/progress-linear',
   'examples/src/material/radio',
-  'examples/src/material/switcher'
+  'examples/src/material/switcher',
+  'examples/src/web_workers/kitchen_sink',
+  'examples/src/web_workers/todo',
+  'examples/src/web_workers/images',
+  'examples/src/web_workers/message_broker'
 ];
 
 
 module.exports = function makeBrowserTree(options, destinationPath) {
-  var modulesTree = new Funnel(
-      'modules',
-      {include: ['**/**'], exclude: ['**/*.cjs', 'benchmarks/e2e_test/**'], destDir: '/'});
+  var modulesTree = new Funnel('modules', {
+    include: ['**/**'],
+    exclude: [
+      '**/*.cjs',
+      'benchmarks/e2e_test/**',
+      'angular1_router/**',
+      // Exclude ES6 polyfill typings when tsc target=ES6
+      'angular2/typings/es6-*/**',
+    ],
+    destDir: '/'
+  });
 
-  // Use Traceur to transpile *.js sources to ES6
-  var traceurTree = transpileWithTraceur(modulesTree, {
-    destExtension: '.js',
-    destSourceMapExtension: '.map',
-    traceurOptions: {
-      sourceMaps: true,
-      annotations: true,      // parse annotations
-      types: true,            // parse types
-      script: false,          // parse as a module
-      memberVariables: true,  // parse class fields
-      modules: 'instantiate',
-      // typeAssertionModule: 'rtts_assert/rtts_assert',
-      // typeAssertions: options.typeAssertions,
-      outputLanguage: 'es6'
+  var clientModules = new Funnel(
+      'node_modules', {include: ['@reactivex/**/**', 'parse5/**/**', 'css/**/**'], destDir: '/'});
+
+  var es5ModulesTree = new Funnel('modules', {
+    include: ['**/**'],
+    exclude: ['**/*.cjs', 'angular1_router/**', 'benchmarks/e2e_test/**'],
+    destDir: '/'
+  });
+
+  var scriptPathPatternReplacement = {
+    match: '@@FILENAME_NO_EXT',
+    replacement: function(replacement, relativePath) {
+      return relativePath.replace(/\.\w+$/, '').replace(/\\/g, '/');
     }
+  };
+
+  modulesTree = replace(modulesTree, {
+    files: ["examples*/**/*.js"],
+    patterns: [{match: /\$SCRIPTS\$/, replacement: jsReplace('SCRIPTS')}]
   });
 
   // Use TypeScript to transpile the *.ts files to ES6
-  // We don't care about errors: we let the TypeScript compilation to ES5
-  // in node_tree.ts do the type-checking.
-  var typescriptTree = compileWithTypescript(modulesTree, {
+  var es6Tree = compileWithTypescript(modulesTree, {
     allowNonTsExtensions: false,
-    declaration: true,
+    declaration: false,
     emitDecoratorMetadata: true,
-    mapRoot: '',           // force sourcemaps to use relative path
-    noEmitOnError: false,  // temporarily ignore errors, we type-check only via cjs build
+    mapRoot: '',  // force sourcemaps to use relative path
+    noEmitOnError: false,
     rootDir: '.',
     sourceMap: true,
     sourceRoot: '.',
     target: 'ES6'
   });
 
-  var es6Tree = mergeTrees([traceurTree, typescriptTree]);
+  // Use TypeScript to transpile the *.ts files to ES5
+  var typescriptOptions = {
+    allowNonTsExtensions: false,
+    declaration: false,
+    emitDecoratorMetadata: true,
+    experimentalDecorators: true,
+    mapRoot: '',  // force sourcemaps to use relative path
+    module: 'CommonJS',
+    moduleResolution: 1 /* classic */,
+    noEmitOnError: true,
+    rootDir: '.',
+    sourceMap: true,
+    sourceRoot: '.',
+    target: 'ES5'
+  };
+  var es5Tree = compileWithTypescript(es5ModulesTree, typescriptOptions);
 
-  // Call Traceur again to lower the ES6 build tree to ES5
-  var es5Tree = transpileWithTraceur(es6Tree, {
-    destExtension: '.js',
-    destSourceMapExtension: '.js.map',
-    traceurOptions: {modules: 'instantiate', sourceMaps: true}
-  });
-
-  // Now we add a few more files to the es6 tree that Traceur should not see
-  ['angular2', 'rtts_assert'].forEach(function(destDir) {
-    var extras = new Funnel('tools/build', {files: ['es5build.js'], destDir: destDir});
-    es6Tree = mergeTrees([es6Tree, extras]);
-  });
-
+  // Now we add a few more files to the es6 tree that the es5 tree should not see
+  var extras = new Funnel('tools/build', {files: ['es5build.js'], destDir: 'angular2'});
+  es6Tree = mergeTrees([es6Tree, extras]);
 
   var vendorScriptsTree = flatten(new Funnel('.', {
     files: [
+      'node_modules/es6-shim/es6-shim.js',
       'node_modules/zone.js/dist/zone-microtask.js',
       'node_modules/zone.js/dist/long-stack-trace-zone.js',
-      'node_modules/es6-module-loader/dist/es6-module-loader-sans-promises.src.js',
       'node_modules/systemjs/dist/system.src.js',
-      'node_modules/systemjs/lib/extension-register.js',
-      'node_modules/systemjs/lib/extension-cjs.js',
-      'node_modules/rx/dist/rx.js',
-      'node_modules/reflect-metadata/Reflect.js',
-      'tools/build/snippets/runtime_paths.js',
-      path.relative(projectRootDir, TRACEUR_RUNTIME_PATH)
+      'node_modules/base64-js/lib/b64.js',
+      'node_modules/reflect-metadata/Reflect.js'
     ]
   }));
 
@@ -147,36 +176,36 @@ module.exports = function makeBrowserTree(options, destinationPath) {
     return funnels;
   }
 
-  var scriptPathPatternReplacement = {
-    match: '@@FILENAME_NO_EXT',
-    replacement: function(replacement, relativePath) {
-      return relativePath.replace(/\.\w+$/, '').replace(/\\/g, '/');
-    }
-  };
-
   var htmlTree = new Funnel(modulesTree, {include: ['*/src/**/*.html'], destDir: '/'});
   htmlTree = replace(htmlTree, {
-    files: ['examples*/**'],
-    patterns: [
-      {match: /\$SCRIPTS\$/, replacement: htmlReplace('SCRIPTS')},
-      scriptPathPatternReplacement
-    ]
+    files: ['examples*/**/*.html'],
+    patterns: [{
+      match: /\$SCRIPTS\$/,
+      replacement: function(token, filePath) {
+        return replaceContentWithBaseDir('SCRIPTS', filePath, /^examples\/src\/.+?\//);
+      }
+    }, scriptPathPatternReplacement]
   });
+
 
   htmlTree = replace(htmlTree, {
     files: ['benchmarks/**'],
-    patterns: [
-      {match: /\$SCRIPTS\$/, replacement: htmlReplace('SCRIPTS_benchmarks')},
-      scriptPathPatternReplacement
-    ]
+    patterns: [{
+      match: /\$SCRIPTS\$/,
+      replacement: function(token, filePath) {
+        return replaceContentWithBaseDir('SCRIPTS_benchmarks', filePath, /^benchmarks\/src\/.+?\//);
+      }
+    }, scriptPathPatternReplacement]
   });
 
   htmlTree = replace(htmlTree, {
     files: ['benchmarks_external/**'],
-    patterns: [
-      {match: /\$SCRIPTS\$/, replacement: htmlReplace('SCRIPTS_benchmarks_external')},
-      scriptPathPatternReplacement
-    ]
+    patterns: [{
+      match: /\$SCRIPTS\$/,
+      replacement: function(token, filePath) {
+        return replaceContentWithBaseDir('SCRIPTS_benchmarks_external', filePath, /^benchmarks_external\/src\/.+?\//);
+      }
+    }, scriptPathPatternReplacement]
   });
 
   var assetsTree =
@@ -196,7 +225,8 @@ module.exports = function makeBrowserTree(options, destinationPath) {
 
   htmlTree = mergeTrees([htmlTree, scripts, polymer, react]);
 
-  es5Tree = mergeTrees([es5Tree, htmlTree, assetsTree]);
+  es5Tree = mergeTrees([es5Tree, htmlTree, assetsTree, clientModules]);
+  es6Tree = mergeTrees([es6Tree, htmlTree, assetsTree, clientModules]);
 
   var mergedTree = mergeTrees([stew.mv(es6Tree, '/es6'), stew.mv(es5Tree, '/es5')]);
 

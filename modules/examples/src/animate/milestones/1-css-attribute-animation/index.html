@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <title>1 Animation Example</title>
+  <style>
+body {
+  margin:0;
+  padding:100px;
+}
+code {
+  border:5px solid #ddd;
+  padding:1em;
+  font-size:20px;
+  background:#eee;
+}
+component, code {
+  margin-bottom:80px;
+  display:block;
+}
+.status {
+  color:green;
+  text-decoration:underline;
+  cursor:pointer;
+}
+.status.closed {
+  color:maroon;
+}
+@keyframes fade-in {
+  from { opacity:0; }
+  to { opacity:1; }
+}
+@keyframes fade-out {
+  from { opacity:1; }
+  to { opacity:0; }
+}
+  </style>
+<body>
+  <animate-app>Loading...</animate-app>
+
+$SCRIPTS$
+</body>
+</html>

@@ -1,9 +1,8 @@
-import {bootstrap, NgFor, Component, View} from 'angular2/angular2';
+import {bootstrap} from 'angular2/bootstrap';
+import {NgFor, Component, View} from 'angular2/core';
 import {Store, Todo, TodoFactory} from './services/TodoStore';
-import {reflector} from 'angular2/src/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/reflection/reflection_capabilities';
 
-@Component({selector: 'todo-app', viewInjector: [Store, TodoFactory]})
+@Component({selector: 'todo-app', viewBindings: [Store, TodoFactory]})
 @View({templateUrl: 'todo.html', directives: [NgFor]})
 class TodoApp {
   todoEdit: Todo = null;
@@ -40,10 +39,9 @@ class TodoApp {
     this.todoStore.list.forEach((todo: Todo) => { todo.completed = isComplete; });
   }
 
-  clearCompleted(): void { this.todoStore.removeBy((todo) => todo.completed); }
+  clearCompleted(): void { this.todoStore.removeBy((todo: Todo) => todo.completed); }
 }
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();  // for the Dart version
   bootstrap(TodoApp);
 }

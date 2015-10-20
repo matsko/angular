@@ -1,62 +1,84 @@
 import {ConnectionBackend, Connection} from '../interfaces';
-import {ReadyStates, RequestMethods, RequestMethodsMap} from '../enums';
+import {ReadyStates, RequestMethods, ResponseTypes} from '../enums';
 import {Request} from '../static_request';
 import {Response} from '../static_response';
 import {ResponseOptions, BaseResponseOptions} from '../base_response_options';
-import {Injectable} from 'angular2/di';
+import {Injectable} from 'angular2/src/core/di';
 import {BrowserXhr} from './browser_xhr';
-import {EventEmitter, ObservableWrapper} from 'angular2/src/facade/async';
-import {isPresent, ENUM_INDEX} from 'angular2/src/facade/lang';
-
+import {isPresent} from 'angular2/src/core/facade/lang';
+// todo(robwormald): temporary until https://github.com/angular/angular/issues/4390 decided
+var Rx = require('@reactivex/rxjs/dist/cjs/Rx');
+var {Observable} = Rx;
 /**
- * Creates connections using `XMLHttpRequest`. Given a fully-qualified
- * request, an `XHRConnection` will immediately create an `XMLHttpRequest` object and send the
- * request.
- *
- * This class would typically not be created or interacted with directly inside applications, though
- * the {@link MockConnection} may be interacted with in tests.
- */
+* Creates connections using `XMLHttpRequest`. Given a fully-qualified
+* request, an `XHRConnection` will immediately create an `XMLHttpRequest` object and send the
+* request.
+*
+* This class would typically not be created or interacted with directly inside applications, though
+* the {@link MockConnection} may be interacted with in tests.
+*/
 export class XHRConnection implements Connection {
   request: Request;
   /**
    * Response {@link EventEmitter} which emits a single {@link Response} value on load event of
    * `XMLHttpRequest`.
    */
-  response: EventEmitter;  // TODO: Make generic of <Response>;
+  response: any;  // TODO: Make generic of <Response>;
   readyState: ReadyStates;
-  private _xhr;  // TODO: make type XMLHttpRequest, pending resolution of
-                 // https://github.com/angular/ts2dart/issues/230
   constructor(req: Request, browserXHR: BrowserXhr, baseResponseOptions?: ResponseOptions) {
-    // TODO: get rid of this when enum lookups are available in ts2dart
-    // https://github.com/angular/ts2dart/issues/221
-    var requestMethodsMap = new RequestMethodsMap();
     this.request = req;
-    this.response = new EventEmitter();
-    this._xhr = browserXHR.build();
-    // TODO(jeffbcross): implement error listening/propagation
-    this._xhr.open(requestMethodsMap.getMethod(ENUM_INDEX(req.method)), req.url);
-    this._xhr.addEventListener('load', (_) => {
-      var responseOptions = new ResponseOptions(
-          {body: isPresent(this._xhr.response) ? this._xhr.response : this._xhr.responseText});
-      if (isPresent(baseResponseOptions)) {
-        responseOptions = baseResponseOptions.merge(responseOptions);
+    this.response = new Observable(responseObserver => {
+      let _xhr: XMLHttpRequest = browserXHR.build();
+      _xhr.open(RequestMethods[req.method].toUpperCase(), req.url);
+      // load event handler
+      let onLoad = () => {
+        // responseText is the old-school way of retrieving response (supported by IE8 & 9)
+        // response/responseType properties were introduced in XHR Level2 spec (supported by
+        // IE10)
+        let response = isPresent(_xhr.response) ? _xhr.response : _xhr.responseText;
+
+        // normalize IE9 bug (http://bugs.jquery.com/ticket/1450)
+        let status = _xhr.status === 1223 ? 204 : _xhr.status;
+
+        // fix status code when it is 0 (0 status is undocumented).
+        // Occurs when accessing file resources or on Android 4.1 stock browser
+        // while retrieving files from application cache.
+        if (status === 0) {
+          status = response ? 200 : 0;
+        }
+        var responseOptions = new ResponseOptions({body: response, status: status});
+        if (isPresent(baseResponseOptions)) {
+          responseOptions = baseResponseOptions.merge(responseOptions);
+        }
+        responseObserver.next(new Response(responseOptions));
+        // TODO(gdi2290): defer complete if array buffer until done
+        responseObserver.complete();
+      };
+      // error event handler
+      let onError = (err) => {
+        var responseOptions = new ResponseOptions({body: err, type: ResponseTypes.Error});
+        if (isPresent(baseResponseOptions)) {
+          responseOptions = baseResponseOptions.merge(responseOptions);
+        }
+        responseObserver.error(new Response(responseOptions));
+      };
+
+      if (isPresent(req.headers)) {
+        req.headers.forEach((value, name) => { _xhr.setRequestHeader(name, value); });
       }
 
-      ObservableWrapper.callNext(this.response, new Response(responseOptions))
+      _xhr.addEventListener('load', onLoad);
+      _xhr.addEventListener('error', onError);
+
+      _xhr.send(this.request.text());
+
+      return () => {
+        _xhr.removeEventListener('load', onLoad);
+        _xhr.removeEventListener('error', onError);
+        _xhr.abort();
+      };
     });
-    // TODO(jeffbcross): make this more dynamic based on body type
-
-    if (isPresent(req.headers)) {
-      req.headers.forEach((value, name) => { this._xhr.setRequestHeader(name, value); });
-    }
-
-    this._xhr.send(this.request.text());
   }
-
-  /**
-   * Calls abort on the underlying XMLHttpRequest.
-   */
-  dispose(): void { this._xhr.abort(); }
 }
 
 /**
@@ -69,17 +91,17 @@ export class XHRConnection implements Connection {
  * #Example
  *
  * ```
- * import {Http, MyNodeBackend, httpInjectables, BaseRequestOptions} from 'angular2/http';
+ * import {Http, MyNodeBackend, HTTP_BINDINGS, BaseRequestOptions} from 'angular2/http';
  * @Component({
- *   viewInjector: [
- *     httpInjectables,
+ *   viewBindings: [
+ *     HTTP_BINDINGS,
  *     bind(Http).toFactory((backend, options) => {
  *       return new Http(backend, options);
  *     }, [MyNodeBackend, BaseRequestOptions])]
  * })
  * class MyComponent {
  *   constructor(http:Http) {
- *     http('people.json').subscribe(res => this.people = res.json());
+ *     http('people.json').toRx().subscribe(res => this.people = res.json());
  *   }
  * }
  * ```

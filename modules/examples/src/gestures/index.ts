@@ -1,6 +1,5 @@
-import {bootstrap, Component, View} from 'angular2/angular2';
-import {reflector} from 'angular2/src/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/reflection/reflection_capabilities';
+import {bootstrap} from 'angular2/bootstrap';
+import {Component, View} from 'angular2/core';
 
 @Component({selector: 'gestures-app'})
 @View({templateUrl: 'template.html'})
@@ -17,6 +16,5 @@ class GesturesCmp {
 }
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
   bootstrap(GesturesCmp);
 }

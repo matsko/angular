@@ -1,13 +1,19 @@
-import {Promise, PromiseWrapper} from 'angular2/src/facade/async';
-import {isBlank, isPresent} from 'angular2/src/facade/lang';
+import {Promise, PromiseWrapper} from 'angular2/src/core/facade/async';
+import {StringMapWrapper} from 'angular2/src/core/facade/collection';
+import {isBlank, isPresent} from 'angular2/src/core/facade/lang';
+import {BaseException, WrappedException} from 'angular2/src/core/facade/exceptions';
 
-import {Directive, Attribute} from 'angular2/src/core/annotations/decorators';
-import {DynamicComponentLoader, ComponentRef, ElementRef} from 'angular2/core';
-import {Injector, bind, Dependency, undefinedValue} from 'angular2/di';
+import {Directive, Attribute} from 'angular2/src/core/metadata';
+import {DynamicComponentLoader, ComponentRef, ElementRef} from 'angular2/src/core/linker';
+import {Injector, bind, Dependency} from 'angular2/src/core/di';
 
 import * as routerMod from './router';
-import {Instruction, RouteParams} from './instruction'
+import {ComponentInstruction, RouteParams} from './instruction';
+import {ROUTE_DATA} from './route_data';
+import * as hookMod from './lifecycle_annotations';
+import {hasLifecycleHook} from './route_lifecycle_reflector';
 
+let _resolveToTrue = PromiseWrapper.resolve(true);
 
 /**
  * A router outlet is a placeholder that Angular dynamically fills based on the application's route.
@@ -18,64 +24,130 @@ import {Instruction, RouteParams} from './instruction'
  * <router-outlet></router-outlet>
  * ```
  */
-@Directive({
-  selector: 'router-outlet'
-})
+@Directive({selector: 'router-outlet'})
 export class RouterOutlet {
-  private _childRouter: routerMod.Router = null;
-  private _componentRef: ComponentRef = null;
-  private _currentInstruction: Instruction = null;
+  name: string = null;
 
+  private _componentRef: ComponentRef = null;
+  private _currentInstruction: ComponentInstruction = null;
+
+  /**
+   * @private
+   */
   constructor(private _elementRef: ElementRef, private _loader: DynamicComponentLoader,
               private _parentRouter: routerMod.Router, @Attribute('name') nameAttr: string) {
-    // TODO: reintroduce with new // sibling routes
-    // if (isBlank(nameAttr)) {
-    //  nameAttr = 'default';
-    //}
-    this._parentRouter.registerOutlet(this);
+    if (isPresent(nameAttr)) {
+      this.name = nameAttr;
+      this._parentRouter.registerAuxOutlet(this);
+    } else {
+      this._parentRouter.registerPrimaryOutlet(this);
+    }
   }
 
   /**
-   * Given an instruction, update the contents of this outlet.
+   * Called by the Router to instantiate a new component during the commit phase of a navigation.
+   * This method in turn is responsible for calling the `onActivate` hook of its child.
    */
-  activate(instruction: Instruction): Promise<any> {
-    // if we're able to reuse the component, we just have to pass along the instruction to the
-    // component's router
-    // so it can propagate changes to its children
-    if ((instruction == this._currentInstruction || instruction.reuse) &&
-        isPresent(this._childRouter)) {
-      return this._childRouter.commit(instruction.child);
-    }
+  activate(nextInstruction: ComponentInstruction): Promise<any> {
+    var previousInstruction = this._currentInstruction;
+    this._currentInstruction = nextInstruction;
+    var componentType = nextInstruction.componentType;
+    var childRouter = this._parentRouter.childRouter(componentType);
 
-    this._currentInstruction = instruction;
-    this._childRouter = this._parentRouter.childRouter(instruction.component);
-    var params = new RouteParams(instruction.params());
-    var bindings = Injector.resolve(
-        [bind(RouteParams).toValue(params), bind(routerMod.Router).toValue(this._childRouter)]);
-
-    return this.deactivate()
-        .then((_) => this._loader.loadNextToLocation(instruction.component, this._elementRef,
-                                                     bindings))
+    var bindings = Injector.resolve([
+      bind(ROUTE_DATA)
+          .toValue(nextInstruction.routeData()),
+      bind(RouteParams).toValue(new RouteParams(nextInstruction.params)),
+      bind(routerMod.Router).toValue(childRouter)
+    ]);
+    return this._loader.loadNextToLocation(componentType, this._elementRef, bindings)
         .then((componentRef) => {
           this._componentRef = componentRef;
-          return this._childRouter.commit(instruction.child);
-        });
-  }
-
-
-  deactivate(): Promise<any> {
-    return (isPresent(this._childRouter) ? this._childRouter.deactivate() :
-                                           PromiseWrapper.resolve(true))
-        .then((_) => {
-          if (isPresent(this._componentRef)) {
-            this._componentRef.dispose();
-            this._componentRef = null;
+          if (hasLifecycleHook(hookMod.onActivate, componentType)) {
+            return this._componentRef.instance.onActivate(nextInstruction, previousInstruction);
           }
         });
   }
 
-  canDeactivate(instruction: Instruction): Promise<boolean> {
-    // TODO: how to get ahold of the component instance here?
-    return PromiseWrapper.resolve(true);
+  /**
+   * Called by the {@link Router} during the commit phase of a navigation when an outlet
+   * reuses a component between different routes.
+   * This method in turn is responsible for calling the `onReuse` hook of its child.
+   */
+  reuse(nextInstruction: ComponentInstruction): Promise<any> {
+    var previousInstruction = this._currentInstruction;
+    this._currentInstruction = nextInstruction;
+
+    if (isBlank(this._componentRef)) {
+      throw new BaseException(`Cannot reuse an outlet that does not contain a component.`);
+    }
+    return PromiseWrapper.resolve(
+        hasLifecycleHook(hookMod.onReuse, this._currentInstruction.componentType) ?
+            this._componentRef.instance.onReuse(nextInstruction, previousInstruction) :
+            true);
+  }
+
+  /**
+   * Called by the {@link Router} when an outlet reuses a component across navigations.
+   * This method in turn is responsible for calling the `onReuse` hook of its child.
+   */
+  deactivate(nextInstruction: ComponentInstruction): Promise<any> {
+    var next = _resolveToTrue;
+    if (isPresent(this._componentRef) && isPresent(this._currentInstruction) &&
+        hasLifecycleHook(hookMod.onDeactivate, this._currentInstruction.componentType)) {
+      next = PromiseWrapper.resolve(
+          this._componentRef.instance.onDeactivate(nextInstruction, this._currentInstruction));
+    }
+    return next.then((_) => {
+      if (isPresent(this._componentRef)) {
+        this._componentRef.dispose();
+        this._componentRef = null;
+      }
+    });
+  }
+
+  /**
+   * Called by the {@link Router} during recognition phase of a navigation.
+   *
+   * If this resolves to `false`, the given navigation is cancelled.
+   *
+   * This method delegates to the child component's `canDeactivate` hook if it exists,
+   * and otherwise resolves to true.
+   */
+  canDeactivate(nextInstruction: ComponentInstruction): Promise<boolean> {
+    if (isBlank(this._currentInstruction)) {
+      return _resolveToTrue;
+    }
+    if (hasLifecycleHook(hookMod.canDeactivate, this._currentInstruction.componentType)) {
+      return PromiseWrapper.resolve(
+          this._componentRef.instance.canDeactivate(nextInstruction, this._currentInstruction));
+    }
+    return _resolveToTrue;
+  }
+
+  /**
+   * Called by the {@link Router} during recognition phase of a navigation.
+   *
+   * If the new child component has a different Type than the existing child component,
+   * this will resolve to `false`. You can't reuse an old component when the new component
+   * is of a different Type.
+   *
+   * Otherwise, this method delegates to the child component's `canReuse` hook if it exists,
+   * or resolves to true if the hook is not present.
+   */
+  canReuse(nextInstruction: ComponentInstruction): Promise<boolean> {
+    var result;
+
+    if (isBlank(this._currentInstruction) ||
+        this._currentInstruction.componentType != nextInstruction.componentType) {
+      result = false;
+    } else if (hasLifecycleHook(hookMod.canReuse, this._currentInstruction.componentType)) {
+      result = this._componentRef.instance.canReuse(nextInstruction, this._currentInstruction);
+    } else {
+      result = nextInstruction == this._currentInstruction ||
+               (isPresent(nextInstruction.params) && isPresent(this._currentInstruction.params) &&
+                StringMapWrapper.equals(nextInstruction.params, this._currentInstruction.params));
+    }
+    return PromiseWrapper.resolve(result);
   }
 }

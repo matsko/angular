@@ -1,0 +1,21 @@
+<button (click)="setBlockOne()">One</button>
+<button (click)="setBlockTwo()">Two</button>
+
+<hr />
+
+<div class="grid">
+  <div class="left">
+    <div *ng-if="isBlockOne()">
+      <div *ng-repeat="#item of items">
+        {{ item }}
+      </div>
+    </div>
+  </div>
+  <div class="right">
+    <div *ng-if="isBlockTwo()">
+      <div *ng-repeat="#item of items">
+        {{ item }}
+      </div>
+    </div>
+  </div>
+</div>

@@ -6,12 +6,18 @@
   "bugs": "<%= packageJson.bugs %>",
   "contributors": <%= JSON.stringify(packageJson.contributors) %>,
   "license": "<%= packageJson.license %>",
+  "repository": <%= JSON.stringify(packageJson.repository) %>,
   "dependencies": {
-    "traceur": "<%= packageJson.dependencies.traceur %>",
     "reflect-metadata": "<%= packageJson.dependencies['reflect-metadata'] %>",
-    "rtts_assert": "<%= packageJson.version %>",
-    "rx": "<%= packageJson.dependencies['rx'] %>",
+    "@reactivex/rxjs": "<%= packageJson.dependencies['@reactivex/rxjs'] %>",
     "zone.js": "<%= packageJson.dependencies['zone.js'] %>"
   },
-  "devDependencies": <%= JSON.stringify(packageJson.defaultDevDependencies) %>
+  "devDependencies": <%= JSON.stringify(packageJson.defaultDevDependencies) %>,
+  "typescript": {
+    "definitions": [
+      "bundles/typings/angular2/angular2.d.ts",
+      "bundles/typings/angular2/http.d.ts",
+      "bundles/typings/angular2/router.d.ts"
+    ]
+  }
 }

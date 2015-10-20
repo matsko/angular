@@ -1,0 +1,11 @@
+<button (click)="showItems()">Show Items</button>
+<button (click)="hideItems()">Hide Items</button>
+<hr />
+<table>
+  <tr *ng-for="#item of items">
+    <td>{{ item.name }}</td>
+    <td>{{ item.age }}</td>
+    <td>{{ item.email }}</td>
+    <td>{{ item.country }}</td>
+  </tr>
+</table>

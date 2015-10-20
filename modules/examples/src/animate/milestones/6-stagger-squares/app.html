@@ -1,0 +1,16 @@
+<nav>
+  <button (click)="showItems()">
+    Show Items
+  </button>
+  <button (click)="hideItems()">
+    Hide Items
+  </button>
+</nav>
+
+<hr />
+
+<div class="container">
+  <div *ng-for="#item of items" class="cell">
+    {{ item }}
+  </div>
+</div>

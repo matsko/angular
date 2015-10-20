@@ -1,26 +1,12 @@
-import {SpyObject, proxy} from 'angular2/test_lib';
-
-import {IMPLEMENTS} from 'angular2/src/facade/lang';
-import {EventEmitter, ObservableWrapper} from 'angular2/src/facade/async';
-import {List, ListWrapper} from 'angular2/src/facade/collection';
+import {EventEmitter, ObservableWrapper} from 'angular2/src/core/facade/async';
+import {ListWrapper} from 'angular2/src/core/facade/collection';
 import {Location} from 'angular2/src/router/location';
 
-
-@proxy
-@IMPLEMENTS(Location)
-export class SpyLocation extends SpyObject {
-  urlChanges: List<string>;
-  _path: string;
-  _subject: EventEmitter;
-  _baseHref: string;
-
-  constructor() {
-    super();
-    this._path = '';
-    this.urlChanges = [];
-    this._subject = new EventEmitter();
-    this._baseHref = '';
-  }
+export class SpyLocation implements Location {
+  urlChanges: string[] = [];
+  _path: string = '';
+  _subject: EventEmitter = new EventEmitter();
+  _baseHref: string = '';
 
   setInitialPath(url: string) { this._path = url; }
 
@@ -30,7 +16,7 @@ export class SpyLocation extends SpyObject {
 
   simulateUrlPop(pathname: string) { ObservableWrapper.callNext(this._subject, {'url': pathname}); }
 
-  normalizeAbsolutely(url): string { return this._baseHref + url; }
+  normalizeAbsolutely(url: string): string { return this._baseHref + url; }
 
   go(url: string) {
     url = this.normalizeAbsolutely(url);
@@ -49,9 +35,12 @@ export class SpyLocation extends SpyObject {
     // TODO
   }
 
-  subscribe(onNext, onThrow = null, onReturn = null) {
+  subscribe(onNext: (value: any) => void, onThrow: (error: any) => void = null,
+            onReturn: () => void = null) {
     ObservableWrapper.subscribe(this._subject, onNext, onThrow, onReturn);
   }
 
-  noSuchMethod(m) { super.noSuchMethod(m); }
+  // TODO: remove these once Location is an interface, and can be implemented cleanly
+  platformStrategy: any = null;
+  normalize(url: string): string { return null; }
 }

@@ -1,10 +1,15 @@
-import {List, ListWrapper, MapWrapper} from 'angular2/src/facade/collection';
-import {DOM} from 'angular2/src/dom/dom_adapter';
-import {isPresent, isString, RegExpWrapper, StringWrapper, RegExp} from 'angular2/src/facade/lang';
-import {resolveInternalDomView} from 'angular2/src/render/dom/view/view';
+import {ListWrapper, MapWrapper} from 'angular2/src/core/facade/collection';
+import {DOM} from 'angular2/src/core/dom/dom_adapter';
+import {
+  isPresent,
+  isString,
+  RegExpWrapper,
+  StringWrapper,
+  RegExp
+} from 'angular2/src/core/facade/lang';
 
 export class Log {
-  _result: List<any>;
+  _result: any[];
 
   constructor() { this._result = []; }
 
@@ -14,30 +19,59 @@ export class Log {
     return (a1 = null, a2 = null, a3 = null, a4 = null, a5 = null) => { this._result.push(value); }
   }
 
+  clear(): void { this._result = []; }
+
   result(): string { return ListWrapper.join(this._result, "; "); }
 }
 
-export function viewRootNodes(view): List</*node*/ any> {
-  return resolveInternalDomView(view.render).rootNodes;
-}
 
-export function queryView(view, selector: string): any {
-  var rootNodes = viewRootNodes(view);
-  for (var i = 0; i < rootNodes.length; ++i) {
-    var res = DOM.querySelector(rootNodes[i], selector);
-    if (isPresent(res)) {
-      return res;
+export class BrowserDetection {
+  private _ua: string;
+
+  constructor(ua: string) {
+    if (isPresent(ua)) {
+      this._ua = ua;
+    } else {
+      this._ua = isPresent(DOM) ? DOM.getUserAgent() : '';
     }
   }
-  return null;
-}
 
-export function dispatchEvent(element, eventType) {
+  get isFirefox(): boolean { return this._ua.indexOf('Firefox') > -1; }
+
+  get isAndroid(): boolean {
+    return this._ua.indexOf('Mozilla/5.0') > -1 && this._ua.indexOf('Android') > -1 &&
+           this._ua.indexOf('AppleWebKit') > -1 && this._ua.indexOf('Chrome') == -1;
+  }
+
+  get isEdge(): boolean { return this._ua.indexOf('Edge') > -1; }
+
+  get isIE(): boolean { return this._ua.indexOf('Trident') > -1; }
+
+  get isWebkit(): boolean {
+    return this._ua.indexOf('AppleWebKit') > -1 && this._ua.indexOf('Edge') == -1;
+  }
+
+  get isIOS7(): boolean {
+    return this._ua.indexOf('iPhone OS 7') > -1 || this._ua.indexOf('iPad OS 7') > -1;
+  }
+
+  get isSlow(): boolean { return this.isAndroid || this.isIE || this.isIOS7; }
+
+  // The Intl API is only properly supported in recent Chrome and Opera.
+  // Note: Edge is disguised as Chrome 42, so checking the "Edge" part is needed,
+  // see https://msdn.microsoft.com/en-us/library/hh869301(v=vs.85).aspx
+  get supportsIntlApi(): boolean {
+    return this._ua.indexOf('Chrome/4') > -1 && this._ua.indexOf('Edge') == -1;
+  }
+}
+export var browserDetection: BrowserDetection = new BrowserDetection(null);
+
+export function dispatchEvent(element, eventType): void {
   DOM.dispatchEvent(element, DOM.createEvent(eventType));
 }
 
-export function el(html: string) {
-  return DOM.firstChild(DOM.content(DOM.createTemplate(html)));
+export function el(html: string): HTMLElement {
+  return <HTMLElement>DOM.firstChild(DOM.content(DOM.createTemplate(html)));
 }
 
 var _RE_SPECIAL_CHARS =
@@ -49,12 +83,12 @@ export function containsRegexp(input: string): RegExp {
 }
 
 export function normalizeCSS(css: string): string {
-  css = StringWrapper.replaceAll(css, RegExpWrapper.create('\\s+'), ' ');
-  css = StringWrapper.replaceAll(css, RegExpWrapper.create(':\\s'), ':');
-  css = StringWrapper.replaceAll(css, RegExpWrapper.create("\\'"), '"');
-  css = StringWrapper.replaceAllMapped(css, RegExpWrapper.create('url\\(\\"(.+)\\"\\)'),
-                                       (match) => `url(${match[1]})`);
-  css = StringWrapper.replaceAllMapped(css, RegExpWrapper.create('\\[(.+)=([^"\\]]+)\\]'),
+  css = StringWrapper.replaceAll(css, /\s+/g, ' ');
+  css = StringWrapper.replaceAll(css, /:\s/g, ':');
+  css = StringWrapper.replaceAll(css, /'/g, '"');
+  css = StringWrapper.replaceAll(css, / }/g, '}');
+  css = StringWrapper.replaceAllMapped(css, /url\(\"(.+)\\"\)/g, (match) => `url(${match[1]})`);
+  css = StringWrapper.replaceAllMapped(css, /\[(.+)=([^"\]]+)\]/g,
                                        (match) => `[${match[1]}="${match[2]}"]`);
   return css;
 }
@@ -85,7 +119,8 @@ export function stringifyElement(el): string {
     result += '>';
 
     // Children
-    var children = DOM.childNodes(DOM.templateAwareRoot(el));
+    var childrenRoot = DOM.templateAwareRoot(el);
+    var children = isPresent(childrenRoot) ? DOM.childNodes(childrenRoot) : [];
     for (let j = 0; j < children.length; j++) {
       result += stringifyElement(children[j]);
     }
@@ -94,6 +129,8 @@ export function stringifyElement(el): string {
     if (!ListWrapper.contains(_singleTagWhitelist, tagName)) {
       result += `</${tagName}>`;
     }
+  } else if (DOM.isCommentNode(el)) {
+    result += `<!--${DOM.nodeValue(el)}-->`;
   } else {
     result += DOM.getText(el);
   }

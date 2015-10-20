@@ -1,13 +1,7 @@
 /**
- * @module
- * @public
- * @description
- * This module provides advanced support for extending dom strategy.
+ * This file is only used for dart applications and for internal examples
+ * that compile with both JavaScript and Dart.
+ *
+ * JavaScript users should import from angular2/core.
  */
-
-export * from './src/render/dom/compiler/view_loader';
-export * from './src/render/dom/shadow_dom/shadow_dom_strategy';
-export * from './src/render/dom/shadow_dom/native_shadow_dom_strategy';
-export * from './src/render/dom/shadow_dom/emulated_scoped_shadow_dom_strategy';
-export * from './src/render/dom/shadow_dom/emulated_unscoped_shadow_dom_strategy';
-export * from './src/render/api';
+export * from './src/core/render';

@@ -16,14 +16,15 @@ allTests() {
 Future runBenchmark() async {
   var options = new TransformerOptions(['this_is_ignored.dart']);
   var files = {new AssetId('a', 'a.dart'): aContents,};
-  return new TransformerBenchmark([[new DirectiveProcessor(options)]], files)
-      .measure();
+  return new TransformerBenchmark([
+    [new DirectiveProcessor(options)]
+  ], files).measure();
 }
 
 const aContents = '''
 library dinner.soup;
 
-import 'package:angular2/src/core/annotations/annotations.dart';
+import 'package:angular2/src/core/metadata.dart';
 
 @Component(selector: '[soup]')
 class SoupComponent {
