@@ -96,4 +96,53 @@ describe('acceptance integration tests', () => {
     expect(element.classList.contains('foo')).toBeTruthy();
     expect(element.classList.contains('baz')).toBeTruthy();
   });
+
+  fit('should properly assign inherited class and style bindings together to a child components from a parent',
+      () => {
+        @Component({
+          template: '...',
+          host: {
+            'class': 'parent-cmp',
+            '[style.width]': 'parentWidthExp',
+            '[style.height]': 'parentHeightExp',
+            '[class.foo]': 'parentFooExp',
+            '[class.bar]': 'parentBarExp',
+          }
+        })
+        class ParentCmp {
+          parentWidthExp = '100px';
+          parentHeightExp = '100px';
+          parentFooExp = false;
+          parentBarExp = true;
+        }
+
+        @Component({
+          template: '...',
+          host: {
+            'class': 'child-cmp',
+            '[style.width]': 'childWidthExp',
+            '[style.opacity]': 'childOpacityExp',
+            '[class.foo]': 'childFooExp',
+            '[class.baz]': 'childBazExp',
+          }
+        })
+        class ChildCmp extends ParentCmp {
+          childWidthExp = '200px';
+          childOpacityExp = '0.5';
+          childFooExp = false;
+          childBazExp = true;
+        }
+
+        TestBed.configureTestingModule({declarations: [ChildCmp]});
+        const fixture = TestBed.createComponent(ChildCmp);
+        fixture.detectChanges();
+
+        const element = fixture.nativeElement;
+        expect(element.style.width).toEqual('200px');
+        expect(element.style.opacity).toEqual('0.5');
+
+        expect(element.classList.contains('foo')).toBeFalsy();
+        expect(element.classList.contains('bar')).toBeFalsy();
+        expect(element.classList.contains('baz')).toBeTruthy();
+      });
 });
