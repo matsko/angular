@@ -29,7 +29,7 @@ export function createEmptyStylingContext(
   const context: StylingContext = [
     wrappedElement || null,          // Element
     0,                               // MasterFlags
-    [] as any,                       // DirectiveRefs (this gets filled below)
+    [0, 0] as any,                   // DirectiveRefs (this gets filled below)
     initialStyles || [null, null],   // InitialStyles
     initialClasses || [null, null],  // InitialClasses
     [0, 0],                          // SinglePropOffsets
@@ -40,7 +40,7 @@ export function createEmptyStylingContext(
 
   // whenever a context is created there is always a `null` directive
   // that is registered (which is a placeholder for the "template").
-  allocateDirectiveIntoContext(context, null);
+  allocateDirectiveIntoContext(context, null, false);
   return context;
 }
 
@@ -61,22 +61,36 @@ export function createEmptyStylingContext(
  * @returns the index where the directive was inserted into
  */
 export function allocateDirectiveIntoContext(
-    context: StylingContext, directiveRef: any | null): number {
+    context: StylingContext, directiveRef: any | null, isComponent: boolean,
+    singlePropValuesStartIndex: number = -1, styleSanitizer?: any): number {
   // this is a new directive which we have not seen yet.
   const dirs = context[StylingIndex.DirectiveRegistryPosition];
   const i = dirs.length;
 
+  let ownerId =
+      (i - DirectiveRegistryValuesIndex.ValuesStartPosition) / DirectiveRegistryValuesIndex.Size;
+  if (isComponent) {
+    // negative ownerId values are set aside for component instances
+    // this inverts the style/class value ownership for inherited components
+    // (which basically means that child components can override parent ones)
+    ownerId *= -1;
+    dirs[DirectiveRegistryValuesIndex.ComponentsCountPosition]++;
+  } else {
+    dirs[DirectiveRegistryValuesIndex.DirectivesCountPosition]++;
+  }
+
   // we preemptively make space into the directives array and then
   // assign values slot-by-slot to ensure that if the directive ordering
   // changes then it will still function
-  dirs.push(null, null, null, null);
+  dirs.push(null, null, null, null, null);
   dirs[i + DirectiveRegistryValuesIndex.DirectiveValueOffset] = directiveRef;
+  dirs[i + DirectiveRegistryValuesIndex.DirectiveOwnerIdOffset] = ownerId;
   dirs[i + DirectiveRegistryValuesIndex.DirtyFlagOffset] = false;
-  dirs[i + DirectiveRegistryValuesIndex.StyleSanitizerOffset] = null;
+  dirs[i + DirectiveRegistryValuesIndex.StyleSanitizerOffset] = styleSanitizer || null;
 
   // -1 is used to signal that the directive has been allocated, but
   // no actual style or class bindings have been registered yet...
-  dirs[i + DirectiveRegistryValuesIndex.SinglePropValuesIndexOffset] = -1;
+  dirs[i + DirectiveRegistryValuesIndex.SinglePropValuesIndexOffset] = singlePropValuesStartIndex;
 
   return i;
 }
@@ -156,6 +170,10 @@ export function hasClassInput(tNode: TNode) {
 
 export function hasStyleInput(tNode: TNode) {
   return (tNode.flags & TNodeFlags.hasStyleInput) !== 0;
+}
+
+export function isComponent(tNode: TNode) {
+  return (tNode.flags & TNodeFlags.isComponent) !== 0;
 }
 
 export function forceClassesAsString(classes: string | {[key: string]: any} | null | undefined):

@@ -61,7 +61,7 @@ export function initializeStaticContext(
  */
 export function patchContextWithStaticAttrs(
     context: StylingContext, attrs: TAttributes, attrsStylingStartIndex: number,
-    directiveRef?: any | null): void {
+    directiveRef?: any | null, directiveOffsetNumber?: number, isComponent?: boolean): void {
   // this means the context has already been set and instantiated
   if (context[StylingIndex.MasterFlagPosition] & StylingFlags.BindingAllocationLocked) return;
 
@@ -70,13 +70,14 @@ export function patchContextWithStaticAttrs(
   // styling being patched twice) is because the `stylingBinding` function is called each time
   // an element is created (both within a template function and within directive host bindings).
   const directives = context[StylingIndex.DirectiveRegistryPosition];
-  let detectedIndex = getDirectiveRegistryValuesIndexOf(directives, directiveRef || null);
+  let detectedIndex =
+      getDirectiveRegistryValuesIndexOf(directives, directiveRef || null, directiveOffsetNumber);
   if (detectedIndex === -1) {
     // this is a new directive which we have not seen yet.
-    detectedIndex = allocateDirectiveIntoContext(context, directiveRef);
+    detectedIndex = allocateDirectiveIntoContext(context, directiveRef, !!isComponent);
   }
-  const directiveIndex = detectedIndex / DirectiveRegistryValuesIndex.Size;
 
+  const directiveOwnerId = getDirectiveOwnerId(context, directiveRef, directiveOffsetNumber);
   let initialClasses: InitialStylingValues|null = null;
   let initialStyles: InitialStylingValues|null = null;
   let mode = -1;
@@ -86,10 +87,10 @@ export function patchContextWithStaticAttrs(
       mode = attr;
     } else if (mode == AttributeMarker.Classes) {
       initialClasses = initialClasses || context[StylingIndex.InitialClassValuesPosition];
-      patchInitialStylingValue(initialClasses, attr, true, directiveIndex);
+      patchInitialStylingValue(initialClasses, attr, true, directiveOwnerId);
     } else if (mode == AttributeMarker.Styles) {
       initialStyles = initialStyles || context[StylingIndex.InitialStyleValuesPosition];
-      patchInitialStylingValue(initialStyles, attr, attrs[++i], directiveIndex);
+      patchInitialStylingValue(initialStyles, attr, attrs[++i], directiveOwnerId);
     }
   }
 }
@@ -201,12 +202,14 @@ export function allowNewBindingsForStylingContext(context: StylingContext): bool
  *    instance will only be active if and when the directive updates the bindings that it owns.
  */
 export function updateContextWithBindings(
-    context: StylingContext, directiveRef: any | null, classBindingNames?: string[] | null,
-    styleBindingNames?: string[] | null, styleSanitizer?: StyleSanitizeFn | null) {
+    context: StylingContext, directiveRef: any | null, directiveOffsetNumber: number,
+    isComponent?: boolean, classBindingNames?: string[] | null, styleBindingNames?: string[] | null,
+    styleSanitizer?: StyleSanitizeFn | null) {
   if (context[StylingIndex.MasterFlagPosition] & StylingFlags.BindingAllocationLocked) return;
 
   // this means the context has already been patched with the directive's bindings
-  const directiveIndex = findOrPatchDirectiveIntoRegistry(context, directiveRef, styleSanitizer);
+  const directiveIndex = findOrPatchDirectiveIntoRegistry(
+      context, directiveRef, directiveOffsetNumber, !!isComponent, styleSanitizer);
   if (directiveIndex === -1) {
     // this means the directive has already been patched in ... No point in doing anything
     return;
@@ -464,46 +467,38 @@ export function updateContextWithBindings(
  * Searches through the existing registry of directives
  */
 export function findOrPatchDirectiveIntoRegistry(
-    context: StylingContext, directiveRef: any, styleSanitizer?: StyleSanitizeFn | null) {
-  const directiveRefs = context[StylingIndex.DirectiveRegistryPosition];
+    context: StylingContext, directiveRef: any, directiveOffsetNumber: number, isComponent: boolean,
+    styleSanitizer?: StyleSanitizeFn | null) {
+  const directives = context[StylingIndex.DirectiveRegistryPosition];
   const nextOffsetInsertionIndex = context[StylingIndex.SinglePropOffsetPositions].length;
 
-  let directiveIndex: number;
-  let detectedIndex = getDirectiveRegistryValuesIndexOf(directiveRefs, directiveRef);
-
+  let detectedIndex =
+      getDirectiveRegistryValuesIndexOf(directives, directiveRef, directiveOffsetNumber);
   if (detectedIndex === -1) {
-    detectedIndex = directiveRefs.length;
-    directiveIndex = directiveRefs.length / DirectiveRegistryValuesIndex.Size;
-
-    allocateDirectiveIntoContext(context, directiveRef);
-    directiveRefs[detectedIndex + DirectiveRegistryValuesIndex.SinglePropValuesIndexOffset] =
-        nextOffsetInsertionIndex;
-    directiveRefs[detectedIndex + DirectiveRegistryValuesIndex.StyleSanitizerOffset] =
-        styleSanitizer || null;
+    detectedIndex =
+        allocateDirectiveIntoContext(context, directiveRef, isComponent, nextOffsetInsertionIndex);
   } else {
     const singlePropStartPosition =
         detectedIndex + DirectiveRegistryValuesIndex.SinglePropValuesIndexOffset;
-    if (directiveRefs[singlePropStartPosition] ! >= 0) {
+    if (directives[singlePropStartPosition] ! >= 0) {
       // the directive has already been patched into the context
       return -1;
     }
-
-    directiveIndex = detectedIndex / DirectiveRegistryValuesIndex.Size;
 
     // because the directive already existed this means that it was set during elementHostAttrs or
     // elementStart which means that the binding values were not here. Therefore, the values below
     // need to be applied so that single class and style properties can be assigned later.
     const singlePropPositionIndex =
         detectedIndex + DirectiveRegistryValuesIndex.SinglePropValuesIndexOffset;
-    directiveRefs[singlePropPositionIndex] = nextOffsetInsertionIndex;
+    directives[singlePropPositionIndex] = nextOffsetInsertionIndex;
 
     // the sanitizer is also apart of the binding process and will be used when bindings are
     // applied.
     const styleSanitizerIndex = detectedIndex + DirectiveRegistryValuesIndex.StyleSanitizerOffset;
-    directiveRefs[styleSanitizerIndex] = styleSanitizer || null;
+    directives[styleSanitizerIndex] = styleSanitizer || null;
   }
 
-  return directiveIndex;
+  return detectedIndex;
 }
 
 function getMatchingBindingIndex(
@@ -546,8 +541,10 @@ export function updateStylingMap(
     context: StylingContext, classesInput: {[key: string]: any} | string |
         BoundPlayerFactory<null|string|{[key: string]: any}>| null,
     stylesInput?: {[key: string]: any} | BoundPlayerFactory<null|{[key: string]: any}>| null,
-    directiveRef?: any): void {
-  const directiveIndex = getDirectiveIndexFromRegistry(context, directiveRef || null);
+    directiveRef?: any, directiveOffsetNumber?: number): void {
+  directiveRef = directiveRef || null;
+  const directiveIndex =
+      getDirectiveIndexFromRegistry(context, directiveRef, directiveOffsetNumber);
 
   classesInput = classesInput || null;
   stylesInput = stylesInput || null;
@@ -684,6 +681,7 @@ function patchStylingMapIntoContext(
     entryIsClassBased: boolean): number {
   let dirty = false;
 
+  const directiveOwnerId = getDirectiveOwnerId(context, directiveIndex);
   const cacheIndex = MapBasedOffsetValuesIndex.ValuesStartPosition +
       directiveIndex * MapBasedOffsetValuesIndex.Size;
 
@@ -905,8 +903,9 @@ function patchStylingMapIntoContext(
 export function updateClassProp(
     context: StylingContext, offset: number,
     input: boolean | BoundPlayerFactory<boolean|null>| null, directiveRef?: any,
-    forceOverride?: boolean): void {
-  updateSingleStylingValue(context, offset, input, true, directiveRef, forceOverride);
+    directiveOffsetNumber?: number, forceOverride?: boolean): void {
+  updateSingleStylingValue(
+      context, offset, input, true, directiveRef, directiveOffsetNumber, forceOverride);
 }
 
 /**
@@ -932,23 +931,28 @@ export function updateClassProp(
 export function updateStyleProp(
     context: StylingContext, offset: number,
     input: string | boolean | null | BoundPlayerFactory<string|boolean|null>, directiveRef?: any,
-    forceOverride?: boolean): void {
-  updateSingleStylingValue(context, offset, input, false, directiveRef, forceOverride);
+    directiveOffsetNumber?: number, forceOverride?: boolean): void {
+  updateSingleStylingValue(
+      context, offset, input, false, directiveRef, directiveOffsetNumber, forceOverride);
 }
 
 function updateSingleStylingValue(
     context: StylingContext, offset: number,
     input: string | boolean | null | BoundPlayerFactory<string|boolean|null>, isClassBased: boolean,
-    directiveRef: any, forceOverride?: boolean): void {
-  const directiveIndex = getDirectiveIndexFromRegistry(context, directiveRef || null);
+    directiveRef: any, directiveOffsetNumber?: number, forceOverride?: boolean): void {
+  directiveRef = directiveRef || null;
+  const directiveIndex =
+      getDirectiveIndexFromRegistry(context, directiveRef, directiveOffsetNumber);
+
   const singleIndex = getSinglePropIndexValue(context, directiveIndex, offset, isClassBased);
   const currValue = getValue(context, singleIndex);
   const currFlag = getPointers(context, singleIndex);
   const currDirective = getDirectiveIndexFromEntry(context, singleIndex);
   const value: string|boolean|null = (input instanceof BoundPlayerFactory) ? input.value : input;
 
+  const directiveOwnerId = getDirectiveOwnerId(context, directiveRef);
   if (hasValueChanged(currFlag, currValue, value) &&
-      (forceOverride || allowValueChange(currValue, value, currDirective, directiveIndex))) {
+      (forceOverride || allowValueChange(currValue, value, currDirective, directiveOwnerId))) {
     const isClassBased = (currFlag & StylingFlags.Class) === StylingFlags.Class;
     const element = context[StylingIndex.ElementPosition] !as HTMLElement;
     const playerBuilder = input instanceof BoundPlayerFactory ?
@@ -967,13 +971,13 @@ function updateSingleStylingValue(
       playerBuildersAreDirty = true;
     }
 
-    if (playerBuildersAreDirty || currDirective !== directiveIndex) {
-      setPlayerBuilderIndex(context, singleIndex, playerBuilderIndex, directiveIndex);
+    if (playerBuildersAreDirty || currDirective !== directiveOwnerId) {
+      setPlayerBuilderIndex(context, singleIndex, playerBuilderIndex, directiveOwnerId);
     }
 
-    if (currDirective !== directiveIndex) {
+    if (currDirective !== directiveOwnerId) {
       const prop = getProp(context, singleIndex);
-      const sanitizer = getStyleSanitizer(context, directiveIndex);
+      const sanitizer = getStyleSanitizer(context, directiveOwnerId);
       setSanitizeFlag(context, singleIndex, (sanitizer && sanitizer(prop)) ? true : false);
     }
 
@@ -1616,11 +1620,12 @@ export function getDirectiveIndexFromEntry(context: StylingContext, index: numbe
   return value & DirectiveOwnerAndPlayerBuilderIndex.BitMask;
 }
 
-function getDirectiveIndexFromRegistry(context: StylingContext, directiveRef: any) {
+function getDirectiveIndexFromRegistry(
+    context: StylingContext, directiveRef: any, directiveOffsetNumber?: number) {
   let directiveIndex: number;
 
   const dirs = context[StylingIndex.DirectiveRegistryPosition];
-  let index = getDirectiveRegistryValuesIndexOf(dirs, directiveRef);
+  let index = getDirectiveRegistryValuesIndexOf(dirs, directiveRef, directiveOffsetNumber);
   if (index === -1) {
     // if the directive was not allocated then this means that styling is
     // being applied in a dynamic way AFTER the element was already instantiated
@@ -1644,10 +1649,18 @@ function getDirectiveIndexFromRegistry(context: StylingContext, directiveRef: an
 }
 
 function getDirectiveRegistryValuesIndexOf(
-    directives: DirectiveRegistryValues, directive: {}): number {
+    directives: DirectiveRegistryValues, directive: {}, directiveOffsetNumber?: number): number {
+  let skipOffset = 0;
+  if (directiveOffsetNumber) {
+    skipOffset =
+        directives[DirectiveRegistryValuesIndex.ComponentsCountPosition] - directiveOffsetNumber;
+  }
   for (let i = 0; i < directives.length; i += DirectiveRegistryValuesIndex.Size) {
     if (directives[i] === directive) {
-      return i;
+      if (skipOffset === 0) {
+        return i;
+      }
+      skipOffset--;
     }
   }
   return -1;
@@ -1987,4 +2000,20 @@ function addOrUpdateStaticStyle(
   staticStyles[index + InitialStylingValuesIndex.ValueOffset] = value;
   staticStyles[index + InitialStylingValuesIndex.DirectiveOwnerOffset] = directiveOwnerIndex;
   return index;
+}
+
+function getDirectiveOwnerId(
+    context: StylingContext, directiveRef: {} | number, directiveOffsetNumber?: number): number {
+  const directives = context[StylingIndex.DirectiveRegistryPosition];
+  let detectedIndex: number;
+  if (typeof directiveRef === 'number') {
+    detectedIndex = directiveRef;
+  } else {
+    detectedIndex =
+        getDirectiveRegistryValuesIndexOf(directives, directiveRef, directiveOffsetNumber);
+    if (detectedIndex === -1) {
+      throw new Error('Directive not found');
+    }
+  }
+  return directives[detectedIndex + DirectiveRegistryValuesIndex.DirectiveOwnerIdOffset] as number;
 }

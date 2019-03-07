@@ -1437,7 +1437,7 @@ function initElementStyling(
     tNode: TNode, classBindingNames?: string[] | null, styleBindingNames?: string[] | null,
     styleSanitizer?: StyleSanitizeFn | null, directive?: {}): void {
   updateContextWithBindings(
-      tNode.stylingTemplate !, directive || null, classBindingNames, styleBindingNames,
+      tNode.stylingTemplate !, directive || null, getInheritedComponentLevel(directive), classBindingNames, styleBindingNames,
       styleSanitizer);
 }
 
@@ -1567,6 +1567,7 @@ export function elementStyleProp(
   }
   updateElementStyleProp(
       getStylingContext(index + HEADER_OFFSET, getLView()), styleIndex, valueToAdd, directive,
+      getInheritedComponentLevel(directive),
       forceOverride);
 }
 
@@ -1598,6 +1599,7 @@ export function elementClassProp(
       booleanOrNull(value);
   updateElementClassProp(
       getStylingContext(index + HEADER_OFFSET, getLView()), classIndex, input, directive,
+      getInheritedComponentLevel(directive),
       forceOverride);
 }
 
@@ -1658,7 +1660,7 @@ export function elementStylingMap<T>(
     }
   }
 
-  updateStylingMap(stylingContext, classes, styles, directive);
+  updateStylingMap(stylingContext, classes, styles, directive, getInheritedComponentLevel(directive));
 }
 
 //////////////////////////
@@ -3298,4 +3300,24 @@ function handleError(lView: LView, error: any): void {
   const injector = lView[INJECTOR];
   const errorHandler = injector ? injector.get(ErrorHandler, null) : null;
   errorHandler && errorHandler.handleError(error);
+}
+
+let activeInheritedComponent: any;
+let inheritedComponentCount: number = 0;
+function getInheritedComponentLevel(instance: any) {
+  return instance && instance === activeInheritedComponent ? inheritedComponentCount : 0;
+}
+
+export function visitInheritedComponent(instance: any) {
+  if (instance !== activeInheritedComponent) {
+    activeInheritedComponent = instance;
+    inheritedComponentCount = 0;
+  }
+  inheritedComponentCount++;
+}
+
+export function leaveInheritedComponent(instance: any) {
+  if (instance === activeInheritedComponent) {
+    inheritedComponentCount--;
+  }
 }

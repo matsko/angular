@@ -505,10 +505,16 @@ export const enum InitialStylingValuesIndex {
  * index value by the size of the array entries (so if DirA is at spot 8 then its index will be 2).
  */
 export interface DirectiveRegistryValues extends Array<null|{}|boolean|number|StyleSanitizeFn> {
-  [DirectiveRegistryValuesIndex.DirectiveValueOffset]: null;
-  [DirectiveRegistryValuesIndex.SinglePropValuesIndexOffset]: number;
-  [DirectiveRegistryValuesIndex.DirtyFlagOffset]: boolean;
-  [DirectiveRegistryValuesIndex.StyleSanitizerOffset]: StyleSanitizeFn|null;
+  // the first two values are counter values
+  [DirectiveRegistryValuesIndex.DirectivesCountPosition]: number;
+  [DirectiveRegistryValuesIndex.ComponentsCountPosition]: number;
+
+  // the first tuple is for the template and must always be there
+  [DirectiveRegistryValuesIndex.TemplateDirectiveValuePosition]: null;
+  [DirectiveRegistryValuesIndex.TemplateDirectiveOwnerIdPosition]: 0;
+  [DirectiveRegistryValuesIndex.TemplateDirectiveValuesIndexPosition]: number;
+  [DirectiveRegistryValuesIndex.TemplateDirectiveDirtyFlagPosition]: boolean;
+  [DirectiveRegistryValuesIndex.TemplateDirectiveStyleSanitizierPosition]: StyleSanitizeFn|null;
 }
 
 /**
@@ -516,11 +522,27 @@ export interface DirectiveRegistryValues extends Array<null|{}|boolean|number|St
  * that are housed inside of [DirectiveRegistryValues].
  */
 export const enum DirectiveRegistryValuesIndex {
+  // the first two values are the fixed count values
+  DirectivesCountPosition = 0,
+  ComponentsCountPosition = 1,
+  ValuesStartPosition = 2,
+
+  // this is the default first entry in the array
+  TemplateDirectiveValuePosition = 2,
+  TemplateDirectiveOwnerIdPosition = 3,
+  TemplateDirectiveValuesIndexPosition = 4,
+  TemplateDirectiveDirtyFlagPosition = 5,
+  TemplateDirectiveStyleSanitizierPosition = 6,
+
+  // these reflect a tuple for each directive entry in array
   DirectiveValueOffset = 0,
-  SinglePropValuesIndexOffset = 1,
-  DirtyFlagOffset = 2,
-  StyleSanitizerOffset = 3,
-  Size = 4
+  DirectiveOwnerIdOffset = 1,
+  SinglePropValuesIndexOffset = 2,
+  DirtyFlagOffset = 3,
+  StyleSanitizerOffset = 4,
+
+  // the tuple size has 5 properties (value, ownerId, valuesIndex, dirty, sanitizer)
+  Size = 5
 }
 
 /**

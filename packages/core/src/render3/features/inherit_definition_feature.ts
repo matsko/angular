@@ -9,6 +9,7 @@
 import {Type} from '../../interface/type';
 import {fillProperties} from '../../util/property';
 import {EMPTY_ARRAY, EMPTY_OBJ} from '../empty';
+import {leaveInheritedComponent, visitInheritedComponent} from '../instructions';
 import {ComponentDef, DirectiveDef, DirectiveDefFeature, RenderFlags} from '../interfaces/definition';
 import {isComponentDef} from '../util/view_utils';
 
@@ -64,7 +65,9 @@ export function InheritDefinitionFeature(definition: DirectiveDef<any>| Componen
       if (superHostBindings) {
         if (prevHostBindings) {
           definition.hostBindings = (rf: RenderFlags, ctx: any, elementIndex: number) => {
+            visitInheritedComponent(ctx);
             superHostBindings(rf, ctx, elementIndex);
+            leaveInheritedComponent(ctx);
             prevHostBindings(rf, ctx, elementIndex);
           };
         } else {
