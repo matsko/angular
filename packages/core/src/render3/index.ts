@@ -54,14 +54,12 @@ export {
   elementStyling,
   elementStylingMap,
   elementStyleProp,
-  elementStylingApply,
 
   elementHostAttrs,
   elementHostStyling,
   elementHostStylingMap,
   elementHostStyleProp,
   elementHostClassProp,
-  elementHostStylingApply,
 
   select,
 

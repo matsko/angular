@@ -8,7 +8,7 @@
 import {StyleSanitizeFn} from '../../sanitization/style_sanitizer';
 import {TNode} from '../interfaces/node';
 import {PlayerFactory} from '../interfaces/player';
-import {FLAGS, HEADER_OFFSET, LViewFlags, RENDERER, RootContextFlags} from '../interfaces/view';
+import {FLAGS, HEADER_OFFSET, LView, LViewFlags, RENDERER, RootContextFlags} from '../interfaces/view';
 import {getActiveHostContext, getActiveHostElementIndex, getLView, getPreviousOrParentTNode} from '../state';
 import {getInitialClassNameValue, renderStyling, updateClassProp as updateElementClassProp, updateContextWithBindings, updateStyleProp as updateElementStyleProp, updateStylingMap} from '../styling/class_and_style_bindings';
 import {BoundPlayerFactory} from '../styling/player_factory';
@@ -19,7 +19,7 @@ import {getRootContext} from '../util/view_traversal_utils';
 import {getTNode} from '../util/view_utils';
 
 import {scheduleTick} from './instructions';
-import {setInputsForProperty} from './shared';
+import {queueStylingFlush, setInputsForProperty} from './shared';
 
 
 
@@ -34,14 +34,12 @@ import {setInputsForProperty} from './shared';
  * - elementStylingMap
  * - elementStyleProp
  * - elementClassProp
- * - elementStylingApply
  *
  * Host bindings level styling instructions:
  * - elementHostStyling
  * - elementHostStylingMap
  * - elementHostStyleProp
  * - elementHostClassProp
- * - elementHostStylingApply
  */
 
 
@@ -175,9 +173,6 @@ export function elementStyleProp(
  * on the same element with `elementHostStylingMap` or any static styles that
  * are present from when the element was patched with `elementHostStyling`).
  *
- * Note that the styling applied to the host element once
- * `elementHostStylingApply` is called.
- *
  * @param styleIndex Index of style to update. This index value refers to the
  *        index of the style in the style bindings array that was passed into
  *        `elementHostStyling`.
@@ -218,9 +213,11 @@ function elementStylePropInternal(
       valueToAdd = value as any as string;
     }
   }
+  const lView = getLView();
   updateElementStyleProp(
-      getStylingContext(index + HEADER_OFFSET, getLView()), styleIndex, valueToAdd, directive,
+      getStylingContext(index + HEADER_OFFSET, lView), styleIndex, valueToAdd, directive,
       forceOverride);
+  localQueueStylingFlush(lView, index);
 }
 
 
@@ -276,12 +273,13 @@ export function elementHostClassProp(
 function elementClassPropInternal(
     directive: {} | null, index: number, classIndex: number, value: boolean | PlayerFactory,
     forceOverride?: boolean): void {
+  const lView = getLView();
   const input = (value instanceof BoundPlayerFactory) ?
       (value as BoundPlayerFactory<boolean|null>) :
       booleanOrNull(value);
   updateElementClassProp(
-      getStylingContext(index + HEADER_OFFSET, getLView()), classIndex, input, directive,
-      forceOverride);
+      getStylingContext(index + HEADER_OFFSET, lView), classIndex, input, directive, forceOverride);
+  localQueueStylingFlush(lView, index);
 }
 
 function booleanOrNull(value: any): boolean|null {
@@ -328,9 +326,6 @@ export function elementStylingMap(
  * `elementHostClassProp`. If any styles or classes are set to falsy then they
  * will be removed from the element.
  *
- * Note that the styling instruction will not be applied until
- * `elementHostStylingApply` is called.
- *
  * @param classes A key/value map or string of CSS classes that will be added to the
  *        given element. Any missing classes (that have already been applied to the element
  *        beforehand) will be removed (unset) from the element's list of CSS classes.
@@ -376,44 +371,18 @@ function elementStylingMapInternal(
   }
 
   updateStylingMap(stylingContext, classes, styles, directive);
+  localQueueStylingFlush(lView, index);
 }
 
-
-/**
- * Apply all style and class binding values to the element.
- *
- * This instruction is meant to be run after `elementStylingMap`, `elementStyleProp`
- * or `elementClassProp` instructions have been run and will only apply styling to
- * the element if any styling bindings have been updated.
- *
- * @param index Index of the element's with which styling is associated.
- *
- * @publicApi
- */
-export function elementStylingApply(index: number): void {
-  elementStylingApplyInternal(null, index);
+function localQueueStylingFlush(lView: LView, index: number) {
+  queueStylingFlush(lView, index, elementStylingApplyInternal);
 }
 
-/**
- * Apply all style and class host binding values to the element.
- *
- * This instruction is meant to be run after `elementHostStylingMap`,
- * `elementHostStyleProp` or `elementHostClassProp` instructions have
- * been run and will only apply styling to the host element if any
- * styling bindings have been updated.
- *
- * @publicApi
- */
-export function elementHostStylingApply(): void {
-  elementStylingApplyInternal(getActiveHostContext() !, getActiveHostElementIndex() !);
-}
-
-export function elementStylingApplyInternal(directive: {} | null, index: number): void {
-  const lView = getLView();
+function elementStylingApplyInternal(lView: LView, index: number): void {
   const isFirstRender = (lView[FLAGS] & LViewFlags.FirstLViewPass) !== 0;
   const totalPlayersQueued = renderStyling(
       getStylingContext(index + HEADER_OFFSET, lView), lView[RENDERER], lView, isFirstRender, null,
-      null, directive);
+      null);
   if (totalPlayersQueued > 0) {
     const rootContext = getRootContext(lView);
     scheduleTick(rootContext, RootContextFlags.FlushPlayers);

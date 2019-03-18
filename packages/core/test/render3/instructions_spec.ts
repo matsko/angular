@@ -10,7 +10,7 @@ import {NgForOfContext} from '@angular/common';
 
 import {RenderFlags} from '../../src/render3';
 import {defineComponent} from '../../src/render3/definition';
-import {bind, element, elementAttribute, elementEnd, elementProperty, elementStart, elementStyleProp, elementStyling, elementStylingApply, elementStylingMap, interpolation1, renderTemplate, template, text, textBinding} from '../../src/render3/instructions/all';
+import {bind, element, elementAttribute, elementEnd, elementProperty, elementStart, elementStyleProp, elementStyling, elementStylingMap, interpolation1, renderTemplate, template, text, textBinding} from '../../src/render3/instructions/all';
 import {AttributeMarker} from '../../src/render3/interfaces/node';
 import {bypassSanitizationTrustHtml, bypassSanitizationTrustResourceUrl, bypassSanitizationTrustScript, bypassSanitizationTrustStyle, bypassSanitizationTrustUrl} from '../../src/sanitization/bypass';
 import {defaultStyleSanitizer, sanitizeHtml, sanitizeResourceUrl, sanitizeScript, sanitizeStyle, sanitizeUrl} from '../../src/sanitization/sanitization';
@@ -203,17 +203,12 @@ describe('instructions', () => {
       const t = new TemplateFixture(() => {
         return createDiv(null, null, null, ['background-image'], defaultStyleSanitizer);
       }, () => {}, 1);
-      t.update(() => {
-        elementStyleProp(0, 0, 'url("http://server")');
-        elementStylingApply(0);
-      });
+      t.update(() => { elementStyleProp(0, 0, 'url("http://server")'); });
       // nothing is set because sanitizer suppresses it.
       expect(t.html).toEqual('<div></div>');
 
-      t.update(() => {
-        elementStyleProp(0, 0, bypassSanitizationTrustStyle('url("http://server2")'));
-        elementStylingApply(0);
-      });
+      t.update(
+          () => { elementStyleProp(0, 0, bypassSanitizationTrustStyle('url("http://server2")')); });
       expect((t.hostElement.firstChild as HTMLElement).style.getPropertyValue('background-image'))
           .toEqual('url("http://server2")');
     });
@@ -225,18 +220,12 @@ describe('instructions', () => {
               null, null, null, ['background-image'], sanitizerInterceptor.getStyleSanitizer()),
           1, sanitizerInterceptor);
 
-      t.update(() => {
-        elementStyleProp(0, 0, bypassSanitizationTrustStyle('apple'));
-        elementStylingApply(0);
-      });
+      t.update(() => { elementStyleProp(0, 0, bypassSanitizationTrustStyle('apple')); });
 
       expect(sanitizerInterceptor.lastValue !).toEqual('apple');
       sanitizerInterceptor.lastValue = null;
 
-      t.update(() => {
-        elementStyleProp(0, 0, bypassSanitizationTrustStyle('apple'));
-        elementStylingApply(0);
-      });
+      t.update(() => { elementStyleProp(0, 0, bypassSanitizationTrustStyle('apple')); });
       expect(sanitizerInterceptor.lastValue).toEqual(null);
     });
   });
@@ -250,10 +239,7 @@ describe('instructions', () => {
 
     it('should add style', () => {
       const fixture = new TemplateFixture(createDivWithStyle, () => {}, 1);
-      fixture.update(() => {
-        elementStylingMap(0, null, {'background-color': 'red'});
-        elementStylingApply(0);
-      });
+      fixture.update(() => { elementStylingMap(0, null, {'background-color': 'red'}); });
       expect(fixture.html).toEqual('<div style="background-color: red; height: 10px;"></div>');
     });
 
@@ -275,7 +261,6 @@ describe('instructions', () => {
           'filter': 'filter',
           'width': 'width'
         });
-        elementStylingApply(0);
       });
 
       const props = detectedValues.sort();
@@ -294,10 +279,7 @@ describe('instructions', () => {
 
     it('should add class', () => {
       const fixture = new TemplateFixture(createDivWithStyling, () => {}, 1);
-      fixture.update(() => {
-        elementStylingMap(0, 'multiple classes');
-        elementStylingApply(0);
-      });
+      fixture.update(() => { elementStylingMap(0, 'multiple classes'); });
       expect(fixture.html).toEqual('<div class="multiple classes"></div>');
     });
   });

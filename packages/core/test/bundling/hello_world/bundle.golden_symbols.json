@@ -225,6 +225,9 @@
     "name": "extractPipeDef"
   },
   {
+    "name": "flushQueuedStyling"
+  },
+  {
     "name": "generateExpandoInstructionBlock"
   },
   {
@@ -403,6 +406,15 @@
   },
   {
     "name": "queueComponentIndexForCheck"
+  },
+  {
+    "name": "queuedStylingFn"
+  },
+  {
+    "name": "queuedStylingLView"
+  },
+  {
+    "name": "queuedStylingNodeIndex"
   },
   {
     "name": "readPatchedData"

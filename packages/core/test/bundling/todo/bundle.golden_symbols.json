@@ -594,9 +594,6 @@
     "name": "elementStyling"
   },
   {
-    "name": "elementStylingApply"
-  },
-  {
     "name": "elementStylingApplyInternal"
   },
   {
@@ -643,6 +640,12 @@
   },
   {
     "name": "findViaComponent"
+  },
+  {
+    "name": "flushHooksUpTo"
+  },
+  {
+    "name": "flushQueuedStyling"
   },
   {
     "name": "forwardRef"
@@ -948,12 +951,6 @@
     "name": "instantiateRootComponent"
   },
   {
-    "name": "interimExpandoStartIndex"
-  },
-  {
-    "name": "interimHostBindingsIndex"
-  },
-  {
     "name": "interpolation1"
   },
   {
@@ -1050,6 +1047,9 @@
     "name": "loadInternal"
   },
   {
+    "name": "localQueueStylingFlush"
+  },
+  {
     "name": "locateDirectiveOrProvider"
   },
   {
@@ -1135,6 +1135,18 @@
   },
   {
     "name": "queueComponentIndexForCheck"
+  },
+  {
+    "name": "queueStylingFlush"
+  },
+  {
+    "name": "queuedStylingFn"
+  },
+  {
+    "name": "queuedStylingLView"
+  },
+  {
+    "name": "queuedStylingNodeIndex"
   },
   {
     "name": "readClassValueFromTNode"
@@ -1228,9 +1240,6 @@
   },
   {
     "name": "searchTokensOnInjector"
-  },
-  {
-    "name": "select"
   },
   {
     "name": "setActiveHost"

@@ -1620,7 +1620,6 @@ describe('ngtsc behavioral tests', () => {
           i0.ɵelementAttribute(elIndex, "hello", i0.ɵbind(ctx.foo));
           i0.ɵelementProperty(elIndex, "prop", i0.ɵbind(ctx.bar), null, true);
           i0.ɵelementHostClassProp(0, ctx.someClass);
-          i0.ɵelementHostStylingApply();
         }
       }
     `;

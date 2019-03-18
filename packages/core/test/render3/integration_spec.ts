@@ -11,7 +11,7 @@ import {ElementRef, TemplateRef, ViewContainerRef} from '@angular/core';
 import {RendererType2} from '../../src/render/api';
 import {AttributeMarker, defineComponent, defineDirective, templateRefExtractor} from '../../src/render3/index';
 
-import {allocHostVars, bind, container, containerRefreshEnd, containerRefreshStart, elementStart, elementAttribute, elementClassProp, elementContainerEnd, elementContainerStart, elementEnd, elementProperty, element, elementStyling, elementStylingApply, elementStyleProp, embeddedViewEnd, embeddedViewStart, interpolation1, interpolation2, interpolation3, interpolation4, interpolation5, interpolation6, interpolation7, interpolation8, interpolationV, projection, projectionDef, reference, text, textBinding, template, elementStylingMap, directiveInject, elementHostAttrs, elementHostStyleProp, elementHostStyling, elementHostClassProp, elementHostStylingApply, elementHostStylingMap, select} from '../../src/render3/instructions/all';
+import {allocHostVars, bind, container, containerRefreshEnd, containerRefreshStart, elementStart, elementAttribute, elementClassProp, elementContainerEnd, elementContainerStart, elementEnd, elementProperty, element, elementStyling, elementStyleProp, embeddedViewEnd, embeddedViewStart, interpolation1, interpolation2, interpolation3, interpolation4, interpolation5, interpolation6, interpolation7, interpolation8, interpolationV, projection, projectionDef, reference, text, textBinding, template, elementStylingMap, directiveInject, elementHostAttrs, elementHostStyleProp, elementHostStyling, elementHostClassProp, elementHostStylingMap, select} from '../../src/render3/instructions/all';
 import {RenderFlags} from '../../src/render3/interfaces/definition';
 import {RElement, Renderer3, RendererFactory3, domRendererFactory3} from '../../src/render3/interfaces/renderer';
 import {HEADER_OFFSET, CONTEXT} from '../../src/render3/interfaces/view';
@@ -1424,7 +1424,6 @@ describe('render3 integration test', () => {
           }
           if (rf & RenderFlags.Update) {
             elementStyleProp(0, 0, ctx.color);
-            elementStylingApply(0);
           }
         }, 1);
 
@@ -1451,7 +1450,6 @@ describe('render3 integration test', () => {
           }
           if (rf & RenderFlags.Update) {
             elementStyleProp(0, 0, ctx.time, 'px');
-            elementStylingApply(0);
           }
         }, 1);
 
@@ -1485,7 +1483,6 @@ describe('render3 integration test', () => {
           }
           if (rf & RenderFlags.Update) {
             elementClassProp(0, 0, ctx.class);
-            elementStylingApply(0);
           }
         }, 1);
 
@@ -1526,7 +1523,6 @@ describe('render3 integration test', () => {
           }
           if (rf & RenderFlags.Update) {
             elementClassProp(0, 1, ctx.class);
-            elementStylingApply(0);
           }
         }, 1);
 
@@ -1557,8 +1553,8 @@ describe('render3 integration test', () => {
             elementEnd();
           }
           if (rf & RenderFlags.Update) {
+            debugger;
             elementClassProp(0, 0, ctx.class);
-            elementStylingApply(0);
           }
         }, 1, 0, [MyComp]);
 
@@ -1620,7 +1616,6 @@ describe('render3 integration test', () => {
           if (rf & RenderFlags.Update) {
             const foo = reference(1) as any;
             elementClassProp(2, 0, ctx.class);
-            elementStylingApply(2);
             elementProperty(2, 'tmp', bind(foo));
           }
         }, 3, 1, [StructuralComp]);
@@ -1681,9 +1676,6 @@ describe('render3 integration test', () => {
                elementStyling();
                elementEnd();
              }
-             if (rf & RenderFlags.Update) {
-               elementStylingApply(0);
-             }
            }, 1, 0, [DirWithClassDirective]);
 
            const fixture = new ComponentFixture(App);
@@ -1702,9 +1694,6 @@ describe('render3 integration test', () => {
                ]);
                elementStyling();
                elementEnd();
-             }
-             if (rf & RenderFlags.Update) {
-               elementStylingApply(0);
              }
            }, 1, 0, [DirWithStyleDirective]);
 
@@ -1725,7 +1714,6 @@ describe('render3 integration test', () => {
              }
              if (rf & RenderFlags.Update) {
                elementStylingMap(0, 'cucumber grape');
-               elementStylingApply(0);
              }
            }, 1, 0, [DirWithClassDirective]);
 
@@ -1746,7 +1734,6 @@ describe('render3 integration test', () => {
              }
              if (rf & RenderFlags.Update) {
                elementStylingMap(0, null, {width: '200px', height: '500px'});
-               elementStylingApply(0);
              }
            }, 1, 0, [DirWithStyleDirective]);
 
@@ -1823,7 +1810,6 @@ describe('render3 integration test', () => {
                    elementHostStyleProp(0, ctx.width);
                    elementHostStyleProp(1, ctx.height);
                    elementHostClassProp(0, ctx.activateXYZClass);
-                   elementHostStylingApply();
                  }
                }
              });
@@ -1894,7 +1880,6 @@ describe('render3 integration test', () => {
                  }
                  if (rf & RenderFlags.Update) {
                    elementHostStyleProp(0, ctx.width);
-                   elementHostStylingApply();
                  }
                }
              });
@@ -1919,7 +1904,6 @@ describe('render3 integration test', () => {
                  }
                  if (rf & RenderFlags.Update) {
                    elementHostStyleProp(0, ctx.width);
-                   elementHostStylingApply();
                  }
                }
              });
@@ -1937,7 +1921,6 @@ describe('render3 integration test', () => {
              }
              if (rf & RenderFlags.Update) {
                elementStyleProp(0, 0, ctx.width);
-               elementStylingApply(0);
              }
            }, 1, 0, [Dir1WithStyle, Dir2WithStyle]);
 
@@ -1991,7 +1974,6 @@ describe('render3 integration test', () => {
                  }
                  if (rf & RenderFlags.Update) {
                    elementHostStylingMap(ctx.classesExp, ctx.stylesExp);
-                   elementHostStylingApply();
                  }
                }
              });
@@ -2018,7 +2000,6 @@ describe('render3 integration test', () => {
                  }
                  if (rf & RenderFlags.Update) {
                    elementHostStylingMap(null, ctx.stylesExp);
-                   elementHostStylingApply();
                  }
                }
              });
@@ -2037,7 +2018,6 @@ describe('render3 integration test', () => {
              }
              if (rf & RenderFlags.Update) {
                elementStylingMap(0, ctx.classesExp, ctx.stylesExp);
-               elementStylingApply(0);
              }
            }, 1, 0, [Dir1WithStyling, Dir2WithStyling]);
 
@@ -2122,7 +2102,6 @@ describe('render3 integration test', () => {
               if (rf & RenderFlags.Update) {
                 elementHostStyleProp(0, ctx.getWidth());
                 elementHostClassProp(0, ctx.getABCClass());
-                elementHostStylingApply();
               }
             }
           });
@@ -2155,7 +2134,6 @@ describe('render3 integration test', () => {
               if (rf & RenderFlags.Update) {
                 elementHostStyleProp(0, ctx.getHeight());
                 elementHostClassProp(0, ctx.getXYZClass());
-                elementHostStylingApply();
               }
             }
           });
@@ -2224,7 +2202,6 @@ describe('render3 integration test', () => {
         }
         if (rf & RenderFlags.Update) {
           elementStylingMap(0, interpolation2('-', ctx.name, '-', ctx.age, '-'));
-          elementStylingApply(0);
         }
       }, 1, 2);
 
@@ -2719,11 +2696,11 @@ describe('element discovery', () => {
            template: (rf: RenderFlags, ctx: StructuredComp) => {
              if (rf & RenderFlags.Create) {
                elementStart(0, 'section');
-               elementStyling(['class-foo']);
+               elementStyling(null, ['width']);
                elementEnd();
              }
              if (rf & RenderFlags.Update) {
-               elementStylingApply(0);
+               elementStyleProp(0, 0, '100px');
              }
            }
          });

@@ -46,7 +46,7 @@ import {INTERPOLATION_DELIMITER, renderStringify} from '../util/misc_utils';
 import {findComponentView, getLViewParent, getRootContext, getRootView} from '../util/view_traversal_utils';
 import {getComponentViewByIndex, getNativeByIndex, getNativeByTNode, getTNode, isComponent, isComponentDef, isContentQueryHost, isRootView, loadInternal, readPatchedLView, resetPreOrderHookFlags, unwrapRNode, viewAttachedToChangeDetector} from '../util/view_utils';
 
-import {setInputsForProperty} from './shared';
+import {flushQueuedStyling, setInputsForProperty} from './shared';
 
 
 
@@ -95,6 +95,7 @@ export function refreshDescendantViews(lView: LView) {
         InitPhaseState.AfterContentInitHooksToBeRun, undefined);
 
     setHostBindings(tView, lView);
+    flushQueuedStyling();
   }
 
   // We resolve content queries specifically marked as `static` in creation mode. Dynamic
@@ -1111,6 +1112,7 @@ export function select(index: number): void {
   const lView = getLView();
   const tView = lView[TVIEW];
   setHostBindings(tView, lView, index);
+  flushQueuedStyling();
   executePreOrderHooks(lView, tView, getCheckNoChangesMode(), index);
 }
 
@@ -2097,6 +2099,7 @@ export function containerRefreshStart(index: number): void {
 
   lView[index + HEADER_OFFSET][ACTIVE_INDEX] = 0;
 
+  flushQueuedStyling();
   // We need to execute init hooks here so ngOnInit hooks are called in top level views
   // before they are called in embedded views (for backwards compatibility).
   executePreOrderHooks(lView, tView, getCheckNoChangesMode(), undefined);

@@ -101,7 +101,6 @@ export {
   elementStyling as ɵelementStyling,
   elementStylingMap as ɵelementStylingMap,
   elementStyleProp as ɵelementStyleProp,
-  elementStylingApply as ɵelementStylingApply,
   elementClassProp as ɵelementClassProp,
 
   elementHostAttrs as ɵelementHostAttrs,
@@ -109,7 +108,6 @@ export {
   elementHostStylingMap as ɵelementHostStylingMap,
   elementHostStyleProp as ɵelementHostStyleProp,
   elementHostClassProp as ɵelementHostClassProp,
-  elementHostStylingApply as ɵelementHostStylingApply,
 
   select as ɵselect,
   textBinding as ɵtextBinding,

@@ -1041,7 +1041,7 @@ export function renderStyling(
   let totalPlayersQueued = 0;
   const targetDirectiveIndex = getDirectiveIndexFromRegistry(context, directiveRef || null);
 
-  if (isContextDirty(context) && isDirectiveDirty(context, targetDirectiveIndex)) {
+  if (isContextDirty(context)) {
     const flushPlayerBuilders: any =
         context[StylingIndex.MasterFlagPosition] & StylingFlags.PlayerBuildersDirty;
     const native = context[StylingIndex.ElementPosition] !;
@@ -1054,11 +1054,6 @@ export function renderStyling(
       if (isDirty(context, i)) {
         const flag = getPointers(context, i);
         const directiveIndex = getDirectiveIndexFromEntry(context, i);
-        if (targetDirectiveIndex !== directiveIndex) {
-          stillDirty = true;
-          continue;
-        }
-
         const prop = getProp(context, i);
         const value = getValue(context, i);
         const styleSanitizer =
@@ -1393,8 +1388,17 @@ export function isContextDirty(context: StylingContext): boolean {
   return isDirty(context, StylingIndex.MasterFlagPosition);
 }
 
+let _flushStylingFn: Function|null = null;
 export function setContextDirty(context: StylingContext, isDirtyYes: boolean): void {
   setDirty(context, StylingIndex.MasterFlagPosition, isDirtyYes);
+  _flushStylingFn = _flushStylingFn || (() => {});
+}
+
+function flushStyling() {
+  if (_flushStylingFn) {
+    _flushStylingFn();
+    _flushStylingFn = null;
+  }
 }
 
 export function setContextPlayersDirty(context: StylingContext, isDirtyYes: boolean): void {

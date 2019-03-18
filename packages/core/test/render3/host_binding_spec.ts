@@ -9,7 +9,7 @@
 import {ElementRef, QueryList, ViewContainerRef} from '@angular/core';
 
 import {AttributeMarker, defineComponent, template, defineDirective, InheritDefinitionFeature, ProvidersFeature, NgOnChangesFeature} from '../../src/render3/index';
-import {allocHostVars, bind, directiveInject, element, elementAttribute, elementEnd, elementProperty, elementStyleProp, elementStyling, elementStylingApply, elementStart, listener, load, text, textBinding, elementHostAttrs, elementHostStylingApply, elementHostStyleProp, elementHostStyling, select} from '../../src/render3/instructions/all';
+import {allocHostVars, bind, directiveInject, element, elementAttribute, elementEnd, elementProperty, elementStyling, elementStart, listener, load, text, textBinding, elementHostAttrs, elementHostStyleProp, elementHostStyling, select} from '../../src/render3/instructions/all';
 import {loadContentQuery, contentQuery, queryRefresh} from '../../src/render3/query';
 import {RenderFlags} from '../../src/render3/interfaces/definition';
 import {pureFunction1, pureFunction2} from '../../src/render3/pure_function';
@@ -1088,7 +1088,6 @@ describe('host bindings', () => {
   });
 
   describe('styles', () => {
-
     it('should bind to host styles', () => {
       let hostBindingDir !: HostBindingToStyles;
       /**
@@ -1111,7 +1110,6 @@ describe('host bindings', () => {
             }
             if (rf & RenderFlags.Update) {
               elementHostStyleProp(0, ctx.width, 'px');
-              elementHostStylingApply();
             }
           },
           template: (rf: RenderFlags, cmp: HostBindingToStyles) => {}
@@ -1155,7 +1153,6 @@ describe('host bindings', () => {
             }
             if (rf & RenderFlags.Update) {
               elementHostStyleProp(0, ctx.width, 'px');
-              elementHostStylingApply();
             }
           }
         });
@@ -1204,9 +1201,6 @@ describe('host bindings', () => {
             if (rf & RenderFlags.Create) {
               elementHostAttrs([AttributeMarker.Classes, 'mat-toolbar']);
               elementHostStyling(['mat-toolbar']);
-            }
-            if (rf & RenderFlags.Update) {
-              elementHostStylingApply();
             }
           },
           template: (rf: RenderFlags, cmp: StaticHostClass) => {}

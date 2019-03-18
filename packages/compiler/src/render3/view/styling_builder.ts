@@ -467,23 +467,6 @@ export class StylingBuilder {
     return [];
   }
 
-  private _buildApplyFn(): Instruction {
-    const isHostBinding = this._directiveExpr;
-    const reference = isHostBinding ? R3.elementHostStylingApply : R3.elementStylingApply;
-    return {
-      sourceSpan: this._lastStylingInput ? this._lastStylingInput.sourceSpan : null,
-      reference,
-      allocateBindingSlots: 0,
-      buildParams: () => {
-        // HOST:
-        //   params => elementHostStylingApply()
-        // Template:
-        //   params => elementStylingApply(elmIndex)
-        return isHostBinding ? [] : [this._elementIndexExpr];
-      }
-    };
-  }
-
   /**
    * Constructs all instructions which contain the expressions that will be placed
    * into the update block of a template function or a directive hostBindings function.
@@ -497,7 +480,6 @@ export class StylingBuilder {
       }
       instructions.push(...this._buildStyleInputs(valueConverter));
       instructions.push(...this._buildClassInputs(valueConverter));
-      instructions.push(this._buildApplyFn());
     }
     return instructions;
   }

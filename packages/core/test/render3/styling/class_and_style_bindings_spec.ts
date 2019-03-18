@@ -8,7 +8,7 @@
 import {createRootContext} from '../../../src/render3/component';
 import {getLContext} from '../../../src/render3/context_discovery';
 import {defineComponent, defineDirective} from '../../../src/render3/index';
-import {createLView, createTView, elementClassProp, elementEnd, elementHostAttrs, elementHostClassProp, elementHostStyleProp, elementHostStyling, elementHostStylingApply, elementHostStylingMap, elementStart, elementStyleProp, elementStyling, elementStylingApply, elementStylingMap, namespaceSVG} from '../../../src/render3/instructions/all';
+import {createLView, createTView, elementClassProp, elementEnd, elementHostAttrs, elementHostClassProp, elementHostStyleProp, elementHostStyling, elementStart, elementStyleProp, elementStyling, elementStylingMap, namespaceSVG} from '../../../src/render3/instructions/all';
 import {RenderFlags} from '../../../src/render3/interfaces/definition';
 import {AttributeMarker, TAttributes} from '../../../src/render3/interfaces/node';
 import {BindingStore, BindingType, PlayState, Player, PlayerContext, PlayerFactory, PlayerHandler} from '../../../src/render3/interfaces/player';
@@ -386,7 +386,6 @@ describe('style and class based bindings', () => {
              if (rf & RenderFlags.Update) {
                elementStylingMap(0, null, ctx.myStyles);
                elementStyleProp(0, 0, ctx.myWidth);
-               elementStylingApply(0);
              }
            }
 
@@ -424,7 +423,6 @@ describe('style and class based bindings', () => {
               if (rf & RenderFlags.Update) {
                 elementStyleProp(0, 0, ctx.diameter, 'px');
                 elementStyleProp(0, 1, ctx.diameter, 'px');
-                elementStylingApply(0);
               }
             }
           });
@@ -463,7 +461,6 @@ describe('style and class based bindings', () => {
               if (rf & RenderFlags.Update) {
                 elementStyleProp(0, 0, ctx.borderWidth);
                 elementStyleProp(0, 1, ctx.borderColor);
-                elementStylingApply(0);
               }
             }
           });
@@ -1869,14 +1866,9 @@ describe('style and class based bindings', () => {
       const stylingContext = createStylingContext(null, ['color']);
       const store = new MockStylingStore(element as HTMLElement, BindingType.Class);
       const getStyles = trackStylesFactory(store);
-      const otherDirective = {};
 
       let styles: any = {'font-size': ''};
-      updateStyleProp(stylingContext, 0, '');
-      updateStylingMap(stylingContext, null, styles);
-      patchContextWithStaticAttrs(stylingContext, [], 0, otherDirective);
-
-      getStyles(stylingContext, otherDirective);
+      getStyles(stylingContext);
       expect(store.getValues()).toEqual({});
 
       styles = {'font-size': '20px'};
@@ -3101,7 +3093,6 @@ describe('style and class based bindings', () => {
                  elementStylingMap(0, classMapFactory, styleMapFactory);
                  elementStyleProp(0, 0, widthFactory);
                  elementClassProp(0, 0, fooFactory);
-                 elementStylingApply(0);
                }
              }
            });
@@ -3174,7 +3165,6 @@ describe('style and class based bindings', () => {
               elementStylingMap(0, classMapFactory, styleMapFactory);
               elementStyleProp(0, 0, widthFactory);
               elementClassProp(0, 0, fooFactory);
-              elementStylingApply(0);
             }
           }
         });
@@ -3243,7 +3233,6 @@ describe('style and class based bindings', () => {
             if (rf & RenderFlags.Update) {
               elementHostStyleProp(0, ctx.widthFactory);
               elementHostClassProp(0, ctx.fooFactory);
-              elementHostStylingApply();
             }
           }
         });
@@ -3269,7 +3258,6 @@ describe('style and class based bindings', () => {
             if (rf & RenderFlags.Update) {
               elementStyleProp(0, 0, ctx.widthFactory);
               elementClassProp(0, 0, ctx.fooFactory);
-              elementStylingApply(0);
             }
           }
         });

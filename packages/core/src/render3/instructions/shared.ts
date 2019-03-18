@@ -35,3 +35,24 @@ export function setInputsForProperty(lView: LView, inputs: PropertyAliasValue, v
     }
   }
 }
+
+let queuedStylingFn: ((lView: LView, index: number) => any)|null = null;
+let queuedStylingLView: LView|null = null;
+let queuedStylingNodeIndex = -1;
+
+export function queueStylingFlush(
+    lView: LView, index: number, fn: (lView: LView, elmIndex: number) => any) {
+  queuedStylingFn = fn;
+  queuedStylingLView = lView;
+  queuedStylingNodeIndex = index;
+}
+
+export function flushQueuedStyling(): void {
+  debugger;
+  if (queuedStylingFn) {
+    queuedStylingFn(queuedStylingLView !, queuedStylingNodeIndex);
+    queuedStylingFn = null;
+    queuedStylingLView = null;
+    queuedStylingNodeIndex = -1;
+  }
+}

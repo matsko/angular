@@ -388,7 +388,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStylingMap(0, null, $ctx$.myStyleExp);
-              $r3$.ɵelementStylingApply(0);
             }
           }
           `;
@@ -453,7 +452,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStylingMap(0, $r3$.ɵinterpolation1("foo foo-", $ctx$.fooId, ""));
-              $r3$.ɵelementStylingApply(0);
             }
           }
         …
@@ -467,7 +465,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStylingMap(0, $r3$.ɵinterpolation2("foo foo-", $ctx$.fooId, "-", $ctx$.fooUsername, ""));
-              $r3$.ɵelementStylingApply(0);
             }
           }
         …
@@ -481,7 +478,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStylingMap(0, $ctx$.exp);
-              $r3$.ɵelementStylingApply(0);
             }
           }
           `;
@@ -539,7 +535,6 @@ describe('compiler compliance: styling', () => {
                   $r3$.ɵelementStylingMap(0, null, $ctx$.myStyleExp);
                   $r3$.ɵelementStyleProp(0, 0, $ctx$.myWidth);
                   $r3$.ɵelementStyleProp(0, 1, $ctx$.myHeight);
-                  $r3$.ɵelementStylingApply(0);
                   $r3$.ɵelementAttribute(0, "style", $r3$.ɵbind("border-width: 10px"), $r3$.ɵsanitizeStyle);
                 }
               },
@@ -596,7 +591,6 @@ describe('compiler compliance: styling', () => {
               }
               if (rf & 2) {
                 $r3$.ɵelementStyleProp(0, 0, ctx.myImage);
-                $r3$.ɵelementStylingApply(0);
               }
             },
             encapsulation: 2
@@ -637,7 +631,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStyleProp(0, 0, 12, "px");
-              $r3$.ɵelementStylingApply(0);
             }
           }
      `;
@@ -678,7 +671,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStylingMap(0,$ctx$.myClassExp);
-              $r3$.ɵelementStylingApply(0);
             }
           }
           `;
@@ -736,7 +728,6 @@ describe('compiler compliance: styling', () => {
                   $r3$.ɵelementStylingMap(0, $ctx$.myClassExp);
                   $r3$.ɵelementClassProp(0, 0, $ctx$.yesToApple);
                   $r3$.ɵelementClassProp(0, 1, $ctx$.yesToOrange);
-                  $r3$.ɵelementStylingApply(0);
                   $r3$.ɵelementAttribute(0, "class", $r3$.ɵbind("banana"));
                 }
               },
@@ -830,7 +821,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStylingMap(0, $ctx$.myClassExp, $ctx$.myStyleExp);
-              $r3$.ɵelementStylingApply(0);
             }
           }
           `;
@@ -872,7 +862,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementStylingMap(0, $r3$.ɵpipeBind1(1, 0, $ctx$.myClassExp), $r3$.ɵpipeBind1(2, 2, $ctx$.myStyleExp));
-              $r3$.ɵelementStylingApply(0);
             }
           }
           `;
@@ -931,7 +920,6 @@ describe('compiler compliance: styling', () => {
               $r3$.ɵelementStyleProp(0, 0, $r3$.ɵpipeBind2(2, 4, $ctx$.barExp, 3000));
               $r3$.ɵelementStyleProp(0, 1, $r3$.ɵpipeBind2(3, 7, $ctx$.bazExp, 4000));
               $r3$.ɵelementClassProp(0, 0, $r3$.ɵpipeBind2(4, 10, $ctx$.fooExp, 2000));
-              $r3$.ɵelementStylingApply(0);
               $r3$.ɵselect(5);
               $r3$.ɵtextBinding(5, $r3$.ɵinterpolation1(" ", $ctx$.item, ""));
             }
@@ -992,7 +980,6 @@ describe('compiler compliance: styling', () => {
               $r3$.ɵelementHostStylingMap(ctx.myClass, ctx.myStyle);
               $r3$.ɵelementHostStyleProp(0, ctx.myColorProp);
               $r3$.ɵelementHostClassProp(0, ctx.myFooClass);
-              $r3$.ɵelementHostStylingApply();
             }
           },
           consts: 0,
@@ -1054,7 +1041,6 @@ describe('compiler compliance: styling', () => {
               $r3$.ɵelementHostStyleProp(1, ctx.myWidthProp);
               $r3$.ɵelementHostClassProp(0, ctx.myBarClass);
               $r3$.ɵelementHostClassProp(1, ctx.myFooClass);
-              $r3$.ɵelementHostStylingApply();
             }
           },
           consts: 0,
@@ -1116,7 +1102,6 @@ describe('compiler compliance: styling', () => {
                 $r3$.ɵelementStylingMap(0, ctx.myClassExp, ctx.myStyleExp);
                 $r3$.ɵelementStyleProp(0, 0, ctx.myHeightExp, null, true);
                 $r3$.ɵelementClassProp(0, 0, ctx.myBarClassExp, true);
-                $r3$.ɵelementStylingApply(0);
               }
             },
           `;
@@ -1133,7 +1118,6 @@ describe('compiler compliance: styling', () => {
                 $r3$.ɵelementHostStylingMap(ctx.myClassExp, ctx.myStyleExp);
                 $r3$.ɵelementHostStyleProp(0, ctx.myWidthExp, null, true);
                 $r3$.ɵelementHostClassProp(0, ctx.myFooClassExp, true);
-                $r3$.ɵelementHostStylingApply();
               }
             },
           `;
@@ -1199,7 +1183,6 @@ describe('compiler compliance: styling', () => {
             }
             if (rf & 2) {
               $r3$.ɵelementHostStylingMap(ctx.myClassMap);
-              $r3$.ɵelementHostStylingApply();
             }
           }
           …
@@ -1210,7 +1193,6 @@ describe('compiler compliance: styling', () => {
             if (rf & 2) {
               $r3$.ɵelementHostStyleProp(0, ctx.myWidth);
               $r3$.ɵelementHostClassProp(0, ctx.myFooClass);
-              $r3$.ɵelementHostStylingApply();
             }
           }
           …
@@ -1221,7 +1203,6 @@ describe('compiler compliance: styling', () => {
             if (rf & 2) {
               $r3$.ɵelementHostStyleProp(0, ctx.myHeight);
               $r3$.ɵelementHostClassProp(0, ctx.myBarClass);
-              $r3$.ɵelementHostStylingApply();
             }
           }
           …
@@ -1283,7 +1264,6 @@ describe('compiler compliance: styling', () => {
           $r3$.ɵelementProperty(elIndex, "id", $r3$.ɵbind(ctx.id), null, true);
           $r3$.ɵelementProperty(elIndex, "title", $r3$.ɵbind(ctx.title), null, true);
           $r3$.ɵelementHostStylingMap(ctx.myClass, ctx.myStyle);
-          $r3$.ɵelementHostStylingApply();
         }
       }
     `;
@@ -1330,7 +1310,6 @@ describe('compiler compliance: styling', () => {
           $r3$.ɵelementProperty(elIndex, "title", $r3$.ɵbind(ctx.title), null, true);
           $r3$.ɵelementHostStyleProp(0, ctx.myWidth);
           $r3$.ɵelementHostClassProp(0, ctx.myFooClass);
-          $r3$.ɵelementHostStylingApply();
         }
       }
     `;

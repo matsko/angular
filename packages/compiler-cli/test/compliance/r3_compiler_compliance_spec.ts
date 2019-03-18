@@ -498,7 +498,6 @@ describe('compiler compliance', () => {
               if (rf & 2) {
                 $r3$.ɵelementStyleProp(0, 0, ctx.color);
                 $r3$.ɵelementClassProp(0, 0, ctx.error);
-                $r3$.ɵelementStylingApply(0);
               }
             },
             encapsulation: 2
