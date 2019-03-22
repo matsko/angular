@@ -363,6 +363,12 @@
     "name": "getInjectorIndex"
   },
   {
+    "name": "getInterimExpandoStartIndex"
+  },
+  {
+    "name": "getInterimHostBindingsIndex"
+  },
+  {
     "name": "getIsParent"
   },
   {
@@ -463,6 +469,12 @@
   },
   {
     "name": "instantiateRootComponent"
+  },
+  {
+    "name": "interimExpandoStartIndex"
+  },
+  {
+    "name": "interimHostBindingsIndex"
   },
   {
     "name": "invertObject"
@@ -655,6 +667,12 @@
   },
   {
     "name": "setInputsFromAttrs"
+  },
+  {
+    "name": "setInterimExpandoStartIndex"
+  },
+  {
+    "name": "setInterimHostBindingsIndex"
   },
   {
     "name": "setIsParent"

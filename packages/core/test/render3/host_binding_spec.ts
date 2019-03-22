@@ -9,7 +9,7 @@
 import {ElementRef, QueryList, ViewContainerRef} from '@angular/core';
 
 import {AttributeMarker, defineComponent, template, defineDirective, InheritDefinitionFeature, ProvidersFeature, NgOnChangesFeature} from '../../src/render3/index';
-import {allocHostVars, bind, directiveInject, element, elementAttribute, elementEnd, elementProperty, elementStyleProp, elementStyling, elementStylingApply, elementStart, listener, load, text, textBinding, elementHostAttrs, elementHostStylingApply, elementHostStyleProp, elementHostStyling} from '../../src/render3/instructions/all';
+import {allocHostVars, bind, directiveInject, element, elementAttribute, elementEnd, elementProperty, elementStyleProp, elementStyling, elementStylingApply, elementStart, listener, load, text, textBinding, elementHostAttrs, elementHostStylingApply, elementHostStyleProp, elementHostStyling, select} from '../../src/render3/instructions/all';
 import {loadContentQuery, contentQuery, queryRefresh} from '../../src/render3/query';
 import {RenderFlags} from '../../src/render3/interfaces/definition';
 import {pureFunction1, pureFunction2} from '../../src/render3/pure_function';
@@ -1280,5 +1280,84 @@ describe('host bindings', () => {
         'b', 'innerHTML', '<img src="javascript:alert(4)">',
         '<img src="unsafe:javascript:alert(4)">', sanitizeHtml, bypassSanitizationTrustHtml,
         /* isAttribute */ false);
+  });
+
+  it('should call host bindings element-by-element when select() is called', () => {
+    let log: string[] = [];
+
+    /**
+     * Dir1 [attr.data-dir1]
+    */
+    class Dir1 {
+      static ngDirectiveDef = defineDirective({
+        type: Dir1,
+        selectors: [['', 'Dir1', '']],
+        factory: () => new Dir1(),
+        hostBindings: function(rf: RenderFlags, ctx: Dir1, elementIndex: number) {
+          if (rf & RenderFlags.Update) {
+            elementAttribute(elementIndex, 'data-dir1', ctx.getData());
+          }
+        }
+      });
+
+      getData() {
+        log.push('dir1');
+        return 'data';
+      }
+    }
+
+    /**
+     * Dir2 [attr.data-dir2]
+    */
+    class Dir2 {
+      static ngDirectiveDef = defineDirective({
+        type: Dir2,
+        selectors: [['', 'Dir2', '']],
+        factory: () => new Dir2(),
+        hostBindings: function(rf: RenderFlags, ctx: Dir2, elementIndex: number) {
+          if (rf & RenderFlags.Update) {
+            elementAttribute(elementIndex, 'data-dir2', ctx.getData());
+          }
+        }
+      });
+
+      getData() {
+        log.push('dir2');
+        return 'data';
+      }
+    }
+
+    function getData(index: number) {
+      log.push(`tpl${index}`);
+      return 'red';
+    }
+
+    /**
+     * <div Dir1 [attr.data-tpl]></div>
+     * <div Dir2 [attr.data-tpl]></div>
+    */
+    const App = createComponent('app', function(rf: RenderFlags, ctx: any) {
+      if (rf & RenderFlags.Create) {
+        elementStart(0, 'div', ['Dir1', '']);
+        elementStyling(null, ['color']);
+        elementEnd();
+        elementStart(1, 'div', ['Dir2', '']);
+        elementStyling(null, ['color']);
+        elementEnd();
+      }
+      if (rf & RenderFlags.Update) {
+        elementAttribute(0, 'data-tpl', getData(0));
+        select(1);
+        elementAttribute(1, 'data-tpl', getData(1));
+      }
+    }, 2, 0, [Dir1, Dir2]);
+
+    const fixture = new ComponentFixture(App);
+    expect(log).toEqual([
+      'tpl0',
+      'dir1',
+      'tpl1',
+      'dir2',
+    ]);
   });
 });

@@ -340,3 +340,21 @@ export function leaveView(newView: LView): void {
   }
   enterView(newView, null);
 }
+
+let interimHostBindingsIndex = 0;
+export function setInterimHostBindingsIndex(index: number) {
+  interimHostBindingsIndex = index;
+}
+
+export function getInterimHostBindingsIndex() {
+  return interimHostBindingsIndex;
+}
+
+let interimExpandoStartIndex = 0;
+export function setInterimExpandoStartIndex(index: number) {
+  interimExpandoStartIndex = index;
+}
+
+export function getInterimExpandoStartIndex() {
+  return interimExpandoStartIndex;
+}

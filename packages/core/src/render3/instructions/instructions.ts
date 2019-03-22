@@ -37,7 +37,7 @@ import {assertNodeOfPossibleTypes, assertNodeType} from '../node_assert';
 import {appendChild, appendProjectedNodes, createTextNode, insertView, removeView} from '../node_manipulation';
 import {isNodeMatchingSelectorList, matchingProjectionSelectorIndex} from '../node_selector_matcher';
 import {applyOnCreateInstructions} from '../node_util';
-import {decreaseElementDepthCount, enterView, getActiveHostContext, getBindingsEnabled, getCheckNoChangesMode, getContextLView, getCurrentDirectiveDef, getElementDepthCount, getIsParent, getLView, getPreviousOrParentTNode, increaseElementDepthCount, isCreationMode, leaveView, nextContextImpl, resetComponentState, setActiveHost, setBindingRoot, setCheckNoChangesMode, setCurrentDirectiveDef, setCurrentQueryIndex, setIsParent, setPreviousOrParentTNode} from '../state';
+import {decreaseElementDepthCount, enterView, getActiveHostContext, getBindingsEnabled, getCheckNoChangesMode, getContextLView, getCurrentDirectiveDef, getElementDepthCount, getInterimExpandoStartIndex, getInterimHostBindingsIndex, getIsParent, getLView, getPreviousOrParentTNode, increaseElementDepthCount, isCreationMode, leaveView, nextContextImpl, resetComponentState, setActiveHost, setBindingRoot, setCheckNoChangesMode, setCurrentDirectiveDef, setCurrentQueryIndex, setInterimExpandoStartIndex, setInterimHostBindingsIndex, setIsParent, setPreviousOrParentTNode} from '../state';
 import {getInitialClassNameValue, getInitialStyleStringValue, initializeStaticContext as initializeStaticStylingContext, patchContextWithStaticAttrs, renderInitialClasses, renderInitialStyles} from '../styling/class_and_style_bindings';
 import {ANIMATION_PROP_PREFIX, getStylingContext, hasClassInput, hasStyleInput, isAnimationProp} from '../styling/util';
 import {NO_CHANGE} from '../tokens';
@@ -109,14 +109,20 @@ export function refreshDescendantViews(lView: LView) {
 
 
 /** Sets the host bindings for the current view. */
-export function setHostBindings(tView: TView, viewData: LView): void {
+export function setHostBindings(tView: TView, viewData: LView, slotIndex?: number): void {
+  const breakAtSlotIndex = slotIndex != null ? -slotIndex : null;
   if (tView.expandoInstructions) {
-    let bindingRootIndex = viewData[BINDING_INDEX] = tView.expandoStartIndex;
+    let bindingRootIndex =
+        getInterimExpandoStartIndex() || (viewData[BINDING_INDEX] = tView.expandoStartIndex);
     setBindingRoot(bindingRootIndex);
     let currentDirectiveIndex = -1;
     let currentElementIndex = -1;
-    for (let i = 0; i < tView.expandoInstructions.length; i++) {
+
+    let i = getInterimHostBindingsIndex();
+    while (i < tView.expandoInstructions.length) {
       const instruction = tView.expandoInstructions[i];
+      if (breakAtSlotIndex && breakAtSlotIndex === instruction) break;
+
       if (typeof instruction === 'number') {
         if (instruction <= 0) {
           // Negative numbers mean that we are starting new EXPANDO block and need to update
@@ -145,7 +151,11 @@ export function setHostBindings(tView: TView, viewData: LView): void {
         }
         currentDirectiveIndex++;
       }
+      i++;
     }
+
+    setInterimHostBindingsIndex(breakAtSlotIndex == null ? 0 : i);
+    setInterimExpandoStartIndex(breakAtSlotIndex == null ? 0 : bindingRootIndex);
   }
 }
 
@@ -1097,9 +1107,11 @@ export function elementEnd(): void {
  *
  * @param index The index of the element in the `LView`
  */
-export function flushHooksUpTo(index: number): void {
+export function select(index: number): void {
   const lView = getLView();
-  executePreOrderHooks(lView, lView[TVIEW], getCheckNoChangesMode(), index);
+  const tView = lView[TVIEW];
+  setHostBindings(tView, lView, index);
+  executePreOrderHooks(lView, tView, getCheckNoChangesMode(), index);
 }
 
 /**
