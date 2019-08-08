@@ -81,7 +81,7 @@
     "name": "NG_ELEMENT_ID"
   },
   {
-    "name": "NG_FACTORY_DEF"
+    "name": "NG_INJECTABLE_DEF"
   },
   {
     "name": "NG_PIPE_DEF"
@@ -156,6 +156,9 @@
     "name": "_currentNamespace"
   },
   {
+    "name": "_elementExitFn"
+  },
+  {
     "name": "_global"
   },
   {
@@ -163,6 +166,9 @@
   },
   {
     "name": "_selectedIndex"
+  },
+  {
+    "name": "_selectedIndexFlags"
   },
   {
     "name": "_stateStorage"
@@ -249,13 +255,19 @@
     "name": "elementCreate"
   },
   {
-    "name": "executeCheckHooks"
+    "name": "enterView"
   },
   {
     "name": "executeContentQueries"
   },
   {
-    "name": "executeInitAndCheckHooks"
+    "name": "executeElementExitFn"
+  },
+  {
+    "name": "executeHooks"
+  },
+  {
+    "name": "executePreOrderHooks"
   },
   {
     "name": "executeTemplate"
@@ -310,9 +322,6 @@
   },
   {
     "name": "getElementDepthCount"
-  },
-  {
-    "name": "getFactoryDef"
   },
   {
     "name": "getHostNative"
@@ -396,6 +405,9 @@
     "name": "getStylingMapArray"
   },
   {
+    "name": "hasActiveElementFlag"
+  },
+  {
     "name": "hasClassInput"
   },
   {
@@ -415,9 +427,6 @@
   },
   {
     "name": "incrementActiveDirectiveId"
-  },
-  {
-    "name": "incrementInitPhaseFlags"
   },
   {
     "name": "initNodeFlags"
@@ -487,6 +496,9 @@
   },
   {
     "name": "isStylingValueDefined"
+  },
+  {
+    "name": "leaveView"
   },
   {
     "name": "locateHostElement"
@@ -570,6 +582,9 @@
     "name": "renderView"
   },
   {
+    "name": "resetActiveElementFlags"
+  },
+  {
     "name": "resetAllStylingState"
   },
   {
@@ -592,9 +607,6 @@
   },
   {
     "name": "selectInternal"
-  },
-  {
-    "name": "selectView"
   },
   {
     "name": "setActiveHostElement"
@@ -666,6 +678,9 @@
     "name": "throwMultipleComponentError"
   },
   {
+    "name": "unsetActiveElementFlag"
+  },
+  {
     "name": "unwrapRNode"
   },
   {
@@ -676,6 +691,9 @@
   },
   {
     "name": "ɵɵdefineComponent"
+  },
+  {
+    "name": "ɵɵdefineInjectable"
   },
   {
     "name": "ɵɵdefineInjector"

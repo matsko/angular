@@ -99,6 +99,9 @@
     "name": "INJECTOR_BLOOM_PARENT_SIZE"
   },
   {
+    "name": "INTERPOLATION_DELIMITER"
+  },
+  {
     "name": "InjectFlags"
   },
   {
@@ -109,9 +112,6 @@
   },
   {
     "name": "MAP_BASED_ENTRY_PROP_NAME"
-  },
-  {
-    "name": "MIN_DIRECTIVE_ID"
   },
   {
     "name": "MONKEY_PATCH_KEY_NAME"
@@ -133,9 +133,6 @@
   },
   {
     "name": "NG_ELEMENT_ID"
-  },
-  {
-    "name": "NG_FACTORY_DEF"
   },
   {
     "name": "NG_INJECTABLE_DEF"
@@ -318,6 +315,9 @@
     "name": "__spread"
   },
   {
+    "name": "__values"
+  },
+  {
     "name": "__window"
   },
   {
@@ -399,13 +399,22 @@
     "name": "_devMode"
   },
   {
+    "name": "_elementExitFn"
+  },
+  {
     "name": "_global"
+  },
+  {
+    "name": "_lastDirectiveIndex"
   },
   {
     "name": "_renderCompCount"
   },
   {
     "name": "_selectedIndex"
+  },
+  {
+    "name": "_selectedIndexFlags"
   },
   {
     "name": "_stateStorage"
@@ -462,25 +471,16 @@
     "name": "appendChild"
   },
   {
-    "name": "applyContainer"
-  },
-  {
-    "name": "applyNodes"
-  },
-  {
-    "name": "applyProjectionRecursive"
+    "name": "applyAndReset"
   },
   {
     "name": "applyStyling"
   },
   {
-    "name": "applyToElementOrContainer"
-  },
-  {
-    "name": "applyView"
-  },
-  {
     "name": "assertTemplate"
+  },
+  {
+    "name": "assignTViewNodeToLView"
   },
   {
     "name": "attachPatchData"
@@ -544,6 +544,9 @@
   },
   {
     "name": "createElementRef"
+  },
+  {
+    "name": "createEmbeddedViewAndNode"
   },
   {
     "name": "createLContainer"
@@ -630,19 +633,43 @@
     "name": "elementPropertyInternal"
   },
   {
-    "name": "executeCheckHooks"
+    "name": "enterView"
+  },
+  {
+    "name": "executeActionOnContainer"
+  },
+  {
+    "name": "executeActionOnElementContainerOrIcuContainer"
+  },
+  {
+    "name": "executeActionOnElementOrContainer"
+  },
+  {
+    "name": "executeActionOnNode"
+  },
+  {
+    "name": "executeActionOnProjection"
+  },
+  {
+    "name": "executeActionOnView"
   },
   {
     "name": "executeContentQueries"
   },
   {
-    "name": "executeInitAndCheckHooks"
+    "name": "executeElementExitFn"
+  },
+  {
+    "name": "executeHooks"
   },
   {
     "name": "executeListenerWithErrorHandling"
   },
   {
     "name": "executeOnDestroys"
+  },
+  {
+    "name": "executePreOrderHooks"
   },
   {
     "name": "executeTemplate"
@@ -762,10 +789,10 @@
     "name": "getErrorLogger"
   },
   {
-    "name": "getFactoryDef"
+    "name": "getGuardMask"
   },
   {
-    "name": "getGuardMask"
+    "name": "getHighestElementOrICUContainer"
   },
   {
     "name": "getHostNative"
@@ -790,6 +817,9 @@
   },
   {
     "name": "getLViewParent"
+  },
+  {
+    "name": "getLastDirectiveIndex"
   },
   {
     "name": "getMapProp"
@@ -912,6 +942,9 @@
     "name": "handleError"
   },
   {
+    "name": "hasActiveElementFlag"
+  },
+  {
     "name": "hasClassInput"
   },
   {
@@ -937,9 +970,6 @@
   },
   {
     "name": "incrementActiveDirectiveId"
-  },
-  {
-    "name": "incrementInitPhaseFlags"
   },
   {
     "name": "initNodeFlags"
@@ -1011,6 +1041,9 @@
     "name": "isDevMode"
   },
   {
+    "name": "isDifferent"
+  },
+  {
     "name": "isFactory"
   },
   {
@@ -1059,6 +1092,9 @@
     "name": "iterateListLike"
   },
   {
+    "name": "leaveView"
+  },
+  {
     "name": "listenerInternal"
   },
   {
@@ -1096,6 +1132,9 @@
   },
   {
     "name": "markDirtyIfOnPush"
+  },
+  {
+    "name": "markStylingStateAsDirty"
   },
   {
     "name": "markViewDirty"
@@ -1218,6 +1257,9 @@
     "name": "renderView"
   },
   {
+    "name": "resetActiveElementFlags"
+  },
+  {
     "name": "resetAllStylingState"
   },
   {
@@ -1239,6 +1281,9 @@
     "name": "saveNameToExportMap"
   },
   {
+    "name": "savePropertyDebugData"
+  },
+  {
     "name": "saveResolvedLocalsInData"
   },
   {
@@ -1251,7 +1296,7 @@
     "name": "selectInternal"
   },
   {
-    "name": "selectView"
+    "name": "setActiveElementFlag"
   },
   {
     "name": "setActiveHostElement"
@@ -1279,6 +1324,9 @@
   },
   {
     "name": "setDirectiveStylingInput"
+  },
+  {
+    "name": "setElementExitFn"
   },
   {
     "name": "setGuardMask"
@@ -1326,7 +1374,13 @@
     "name": "stateIsPersisted"
   },
   {
+    "name": "storeBindingMetadata"
+  },
+  {
     "name": "storeCleanupFn"
+  },
+  {
+    "name": "storeLastDirectiveIndex"
   },
   {
     "name": "storeStylingState"
@@ -1336,6 +1390,9 @@
   },
   {
     "name": "stringifyForError"
+  },
+  {
+    "name": "stylingApplyInternal"
   },
   {
     "name": "stylingMapToString"
@@ -1357,6 +1414,9 @@
   },
   {
     "name": "trackMovedView"
+  },
+  {
+    "name": "unsetActiveElementFlag"
   },
   {
     "name": "unwrapRNode"
@@ -1441,9 +1501,6 @@
   },
   {
     "name": "ɵɵstyling"
-  },
-  {
-    "name": "ɵɵstylingApply"
   },
   {
     "name": "ɵɵtemplate"

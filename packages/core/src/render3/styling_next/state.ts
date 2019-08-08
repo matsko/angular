@@ -45,7 +45,6 @@
  */
 
 let _stylingState: StylingState|null = null;
-const _stateStorage = new Map<any, StylingState>();
 
 // this value is not used outside this file and is only here
 // as a caching check for when the element changes.
@@ -64,13 +63,9 @@ export interface StylingState {
 export const STYLING_INDEX_START_VALUE = 1;
 export const BIT_MASK_START_VALUE = 0;
 
-export function getStylingState(element: any, readFromMap?: boolean): StylingState {
+export function getStylingState(element: any): StylingState {
   if (!_stylingElement || element !== _stylingElement) {
     _stylingElement = element;
-    if (readFromMap) {
-      _stylingState = _stateStorage.get(element) || null;
-      ngDevMode && ngDevMode.stylingReadPersistedState++;
-    }
     _stylingState = _stylingState || {
       classesBitMask: BIT_MASK_START_VALUE,
       classesIndex: STYLING_INDEX_START_VALUE,
@@ -86,16 +81,6 @@ export function resetStylingState() {
   _stylingElement = null;
 }
 
-export function storeStylingState(element: any, state: StylingState) {
-  ngDevMode && ngDevMode.stylingWritePersistedState++;
-  _stateStorage.set(element, state);
-}
-
-export function deleteStylingStateFromStorage(element: any) {
-  _stateStorage.delete(element);
-}
-
 export function resetAllStylingState() {
   resetStylingState();
-  _stateStorage.clear();
 }

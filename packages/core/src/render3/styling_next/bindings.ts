@@ -10,8 +10,8 @@ import {StyleSanitizeFn, StyleSanitizeMode} from '../../sanitization/style_sanit
 import {ProceduralRenderer3, RElement, Renderer3, RendererStyleFlags3, isProceduralRenderer} from '../interfaces/renderer';
 
 import {ApplyStylingFn, LStylingData, StylingMapArray, StylingMapArrayIndex, StylingMapsSyncMode, SyncStylingMapsFn, TStylingContext, TStylingContextIndex, TStylingContextPropConfigFlags} from './interfaces';
-import {BIT_MASK_START_VALUE, deleteStylingStateFromStorage, getStylingState, resetStylingState, storeStylingState} from './state';
-import {allowStylingFlush, getBindingValue, getGuardMask, getMapProp, getMapValue, getProp, getPropValuesStartPosition, getStylingMapArray, getValuesCount, hasValueChanged, isContextLocked, isSanitizationRequired, isStylingValueDefined, lockContext, setGuardMask, stateIsPersisted} from './util';
+import {getStylingState, resetStylingState} from './state';
+import {getBindingValue, getGuardMask, getMapProp, getMapValue, getProp, getPropValuesStartPosition, getStylingMapArray, getValuesCount, hasValueChanged, isContextLocked, isSanitizationRequired, isStylingValueDefined, lockContext, setGuardMask, TEMPLATE_DIRECTIVE_INDEX} from './util';
 
 
 
@@ -58,13 +58,7 @@ const STYLING_INDEX_FOR_MAP_BINDING = 0;
  */
 const DEFAULT_BINDING_VALUE = null;
 
-/**
- * Default size count value for a new entry in a context.
- *
- * A value of `1` is used here because each entry in the context has a default
- * property.
- */
-const DEFAULT_SIZE_VALUE = 1;
+const DEFAULT_BINDING_INDEX = 0;
 
 let deferredBindingQueue: (TStylingContext | number | string | null | boolean)[] = [];
 
@@ -80,20 +74,21 @@ let deferredBindingQueue: (TStylingContext | number | string | null | boolean)[]
  */
 export function updateClassBinding(
     context: TStylingContext, data: LStylingData, element: RElement, prop: string | null,
+    sourceIndex: number,
     bindingIndex: number, value: boolean | string | null | undefined | StylingMapArray,
     deferRegistration: boolean, forceUpdate: boolean): boolean {
   const isMapBased = !prop;
-  const state = getStylingState(element, stateIsPersisted(context));
-  const index = isMapBased ? STYLING_INDEX_FOR_MAP_BINDING : state.classesIndex++;
+  const state = getStylingState(element);
+  const countIndex = isMapBased ? STYLING_INDEX_FOR_MAP_BINDING : state.classesIndex++;
   const updated = updateBindingData(
-      context, data, index, prop, bindingIndex, value, deferRegistration, forceUpdate, false);
+      context, data, countIndex, sourceIndex, prop, bindingIndex, value, deferRegistration, forceUpdate, false);
   if (updated || forceUpdate) {
     // We flip the bit in the bitMask to reflect that the binding
     // at the `index` slot has changed. This identifies to the flushing
     // phase that the bindings for this particular CSS class need to be
     // applied again because on or more of the bindings for the CSS
     // class have changed.
-    state.classesBitMask |= 1 << index;
+    state.classesBitMask |= 1 << countIndex;
     return true;
   }
   return false;
@@ -111,16 +106,17 @@ export function updateClassBinding(
  */
 export function updateStyleBinding(
     context: TStylingContext, data: LStylingData, element: RElement, prop: string | null,
+    sourceIndex: number,
     bindingIndex: number, value: string | number | SafeValue | null | undefined | StylingMapArray,
     sanitizer: StyleSanitizeFn | null, deferRegistration: boolean, forceUpdate: boolean): boolean {
   const isMapBased = !prop;
-  const state = getStylingState(element, stateIsPersisted(context));
-  const index = isMapBased ? STYLING_INDEX_FOR_MAP_BINDING : state.stylesIndex++;
+  const state = getStylingState(element);
+  const countIndex = isMapBased ? STYLING_INDEX_FOR_MAP_BINDING : state.stylesIndex++;
   const sanitizationRequired = isMapBased ?
       true :
       (sanitizer ? sanitizer(prop !, null, StyleSanitizeMode.ValidateProperty) : false);
   const updated = updateBindingData(
-      context, data, index, prop, bindingIndex, value, deferRegistration, forceUpdate,
+      context, data, countIndex, sourceIndex, prop, bindingIndex, value, deferRegistration, forceUpdate,
       sanitizationRequired);
   if (updated || forceUpdate) {
     // We flip the bit in the bitMask to reflect that the binding
@@ -128,7 +124,7 @@ export function updateStyleBinding(
     // phase that the bindings for this particular property need to be
     // applied again because on or more of the bindings for the CSS
     // property have changed.
-    state.stylesBitMask |= 1 << index;
+    state.stylesBitMask |= 1 << countIndex;
     return true;
   }
   return false;
@@ -148,13 +144,17 @@ export function updateStyleBinding(
  * @returns whether or not the binding value was updated in the `LStylingData`.
  */
 function updateBindingData(
-    context: TStylingContext, data: LStylingData, counterIndex: number, prop: string | null,
+    context: TStylingContext,
+    data: LStylingData,
+    counterIndex: number,
+    sourceIndex: number,
+    prop: string | null,
     bindingIndex: number,
     value: string | SafeValue | number | boolean | null | undefined | StylingMapArray,
     deferRegistration: boolean, forceUpdate: boolean, sanitizationRequired: boolean): boolean {
   if (!isContextLocked(context)) {
     if (deferRegistration) {
-      deferBindingRegistration(context, counterIndex, prop, bindingIndex, sanitizationRequired);
+      deferBindingRegistration(context, counterIndex, sourceIndex, prop, bindingIndex, sanitizationRequired);
     } else {
       deferredBindingQueue.length && flushDeferredBindings();
 
@@ -164,7 +164,7 @@ function updateBindingData(
       // update pass is executed (remember that all styling instructions
       // are run in the update phase, and, as a result, are no more
       // styling instructions that are run in the creation phase).
-      registerBinding(context, counterIndex, prop, bindingIndex, sanitizationRequired);
+      registerBinding(context, counterIndex, sourceIndex, prop, bindingIndex, sanitizationRequired);
     }
   }
 
@@ -187,9 +187,9 @@ function updateBindingData(
  * after the inheritance chain exits.
  */
 function deferBindingRegistration(
-    context: TStylingContext, counterIndex: number, prop: string | null, bindingIndex: number,
+    context: TStylingContext, counterIndex: number, sourceIndex: number, prop: string | null, bindingIndex: number,
     sanitizationRequired: boolean) {
-  deferredBindingQueue.unshift(context, counterIndex, prop, bindingIndex, sanitizationRequired);
+  deferredBindingQueue.unshift(context, counterIndex, sourceIndex, prop, bindingIndex, sanitizationRequired);
 }
 
 /**
@@ -201,10 +201,11 @@ function flushDeferredBindings() {
   while (i < deferredBindingQueue.length) {
     const context = deferredBindingQueue[i++] as TStylingContext;
     const count = deferredBindingQueue[i++] as number;
+    const sourceIndex = deferredBindingQueue[i++] as number;
     const prop = deferredBindingQueue[i++] as string;
     const bindingIndex = deferredBindingQueue[i++] as number | null;
     const sanitizationRequired = deferredBindingQueue[i++] as boolean;
-    registerBinding(context, count, prop, bindingIndex, sanitizationRequired);
+    registerBinding(context, count, sourceIndex, prop, bindingIndex, sanitizationRequired);
   }
   deferredBindingQueue.length = 0;
 }
@@ -246,15 +247,19 @@ function flushDeferredBindings() {
  * the context at the top (which is reserved for map-based entries).
  */
 export function registerBinding(
-    context: TStylingContext, countId: number, prop: string | null,
-    bindingValue: number | null | string | boolean, sanitizationRequired?: boolean): boolean {
+    context: TStylingContext,
+    countId: number,
+    sourceIndex: number,
+    prop: string | null,
+    bindingValue: number | null | string | boolean,
+    sanitizationRequired?: boolean): boolean {
   let registered = false;
   if (prop) {
     // prop-based bindings (e.g `<div [style.width]="w" [class.foo]="f">`)
     let found = false;
     let i = getPropValuesStartPosition(context);
     while (i < context.length) {
-      const valuesCount = getValuesCount(context, i);
+      const valuesCount = getValuesCount(context);
       const p = getProp(context, i);
       found = prop <= p;
       if (found) {
@@ -262,7 +267,7 @@ export function registerBinding(
         if (prop < p) {
           allocateNewContextEntry(context, i, prop, sanitizationRequired);
         }
-        addBindingIntoContext(context, false, i, bindingValue, countId);
+        addBindingIntoContext(context, i, bindingValue, countId, sourceIndex);
         break;
       }
       i += TStylingContextIndex.BindingsStartOffset + valuesCount;
@@ -270,7 +275,7 @@ export function registerBinding(
 
     if (!found) {
       allocateNewContextEntry(context, context.length, prop, sanitizationRequired);
-      addBindingIntoContext(context, false, i, bindingValue, countId);
+      addBindingIntoContext(context, i, bindingValue, countId, sourceIndex);
       registered = true;
     }
   } else {
@@ -278,7 +283,7 @@ export function registerBinding(
     // there is no need to allocate the map-based binding region into the context
     // since it is already there when the context is first created.
     addBindingIntoContext(
-        context, true, TStylingContextIndex.MapBindingsPosition, bindingValue, countId);
+        context, TStylingContextIndex.MapBindingsPosition, bindingValue, countId, sourceIndex);
     registered = true;
   }
   return registered;
@@ -286,16 +291,15 @@ export function registerBinding(
 
 function allocateNewContextEntry(
     context: TStylingContext, index: number, prop: string, sanitizationRequired?: boolean) {
-  // 1,2: splice index locations
-  // 3: each entry gets a config value (guard mask + flags)
-  // 4. each entry gets a size value (which is always one because there is always a default binding
-  // value)
-  // 5. the property that is getting allocated into the context
-  // 6. the default binding value (usually `null`)
   const config = sanitizationRequired ? TStylingContextPropConfigFlags.SanitizationRequired :
                                         TStylingContextPropConfigFlags.Default;
-  context.splice(index, 0, config, DEFAULT_SIZE_VALUE, prop, DEFAULT_BINDING_VALUE);
-  setGuardMask(context, index, DEFAULT_GUARD_MASK_VALUE);
+  context.splice(index, 0,
+    config,                     // 1) config value
+    DEFAULT_GUARD_MASK_VALUE,   // 2) template bit mask
+    DEFAULT_GUARD_MASK_VALUE,   // 3) host bindings bit mask
+    prop,                       // 4) prop value (e.g. `width`, `myClass`, etc...)
+    DEFAULT_BINDING_VALUE,      // 5) default binding value for the new entry
+  );
 }
 
 /**
@@ -316,45 +320,37 @@ function allocateNewContextEntry(
  * at the top of the context.
  */
 function addBindingIntoContext(
-    context: TStylingContext, isMapBased: boolean, index: number,
-    bindingValue: number | string | boolean | null, countId: number) {
-  const valuesCount = getValuesCount(context, index);
-
+    context: TStylingContext, index: number,
+    bindingValue: number | string | boolean | null, bitIndex: number, sourceIndex: number) {
+  let total = getValuesCount(context);
   const firstValueIndex = index + TStylingContextIndex.BindingsStartOffset;
-  let lastValueIndex = firstValueIndex + valuesCount;
-  if (!isMapBased) {
-    // prop-based values all have default values, but map-based entries do not.
-    // we want to access the index for the default value in this case and not just
-    // the bindings...
-    lastValueIndex--;
-  }
+  const lastValueIndex = firstValueIndex + total;
 
   if (typeof bindingValue === 'number') {
-    // the loop here will check to see if the binding already exists
-    // for the property in the context. Why? The reason for this is
-    // because the styling context is not "locked" until the first
-    // flush has occurred. This means that if a repeated element
-    // registers its styling bindings then it will register each
-    // binding more than once (since its duplicated). This check
-    // will prevent that from happening. Note that this only happens
-    // when a binding is first encountered and not each time it is
-    // updated.
-    for (let i = firstValueIndex; i <= lastValueIndex; i++) {
-      const indexAtPosition = context[i];
-      if (indexAtPosition === bindingValue) return;
+    if (sourceIndex >= total) {
+      addNewSourceColumn(context);
+      total++;
     }
 
-    context.splice(lastValueIndex, 0, bindingValue);
-    (context[index + TStylingContextIndex.ValuesCountOffset] as number)++;
-
-    // now that a new binding index has been added to the property
-    // the guard mask bit value (at the `countId` position) needs
-    // to be included into the existing mask value.
-    const guardMask = getGuardMask(context, index) | (1 << countId);
+    const cellIndex = firstValueIndex + total;
+    const guardMask = getGuardMask(context, index) | (1 << bitIndex);
+    const cellValue = sourceIndex === TEMPLATE_DIRECTIVE_INDEX ? bindingValue : -bindingValue;
+    context[cellIndex] = cellValue;
     setGuardMask(context, index, guardMask);
   } else if (bindingValue !== null && context[lastValueIndex] == null) {
     context[lastValueIndex] = bindingValue;
   }
+}
+
+function addNewSourceColumn(context: TStylingContext) {
+  const total = context[TStylingContextIndex.TotalSourcesPosition];
+  const totalEntriesPerRow = TStylingContextIndex.BindingsStartOffset + total + 1;
+  let index = TStylingContextIndex.MapBindingsBindingsStartPosition + total;
+  while (index < context.length) {
+    context.splice(index, 0, DEFAULT_BINDING_INDEX);
+    index += totalEntriesPerRow + 1;
+  }
+  context[TStylingContextIndex.TotalSourcesPosition]++;
 }
 
 /**
@@ -384,56 +380,28 @@ function addBindingIntoContext(
 export function flushStyling(
     renderer: Renderer3 | ProceduralRenderer3 | null, data: LStylingData,
     classesContext: TStylingContext | null, stylesContext: TStylingContext | null,
-    element: RElement, directiveIndex: number, styleSanitizer: StyleSanitizeFn | null): void {
+    element: RElement, sourceIndex: number, styleSanitizer: StyleSanitizeFn | null): void {
   ngDevMode && ngDevMode.flushStyling++;
-
-  const persistState = classesContext ? stateIsPersisted(classesContext) :
-                                        (stylesContext ? stateIsPersisted(stylesContext) : false);
-  const allowFlushClasses = allowStylingFlush(classesContext, directiveIndex);
-  const allowFlushStyles = allowStylingFlush(stylesContext, directiveIndex);
 
   // deferred bindings are bindings which are scheduled to register with
   // the context at a later point. These bindings can only registered when
   // the context will be 100% flushed to the element.
-  if (deferredBindingQueue.length && (allowFlushClasses || allowFlushStyles)) {
+  if (deferredBindingQueue.length) {
     flushDeferredBindings();
   }
 
-  const state = getStylingState(element, persistState);
-  const classesFlushed = maybeApplyStyling(
-      renderer, element, data, classesContext, allowFlushClasses, state.classesBitMask, setClass,
-      null);
-  const stylesFlushed = maybeApplyStyling(
-      renderer, element, data, stylesContext, allowFlushStyles, state.stylesBitMask, setStyle,
-      styleSanitizer);
+  const isHostBinding = sourceIndex !== TEMPLATE_DIRECTIVE_INDEX;
+  const state = getStylingState(element);
 
-  if (classesFlushed && stylesFlushed) {
-    resetStylingState();
-    if (persistState) {
-      deleteStylingStateFromStorage(element);
-    }
-  } else if (persistState) {
-    storeStylingState(element, state);
+  if (stylesContext) {
+    applyStyling(stylesContext, renderer, element, data, state.classesBitMask, setClass, null, isHostBinding);
   }
-}
 
-function maybeApplyStyling(
-    renderer: Renderer3 | ProceduralRenderer3 | null, element: RElement, data: LStylingData,
-    context: TStylingContext | null, allowFlush: boolean, bitMask: number,
-    styleSetter: ApplyStylingFn, styleSanitizer: any | null): boolean {
-  if (allowFlush && context) {
-    lockAndFinalizeContext(context);
-    if (contextHasUpdates(context, bitMask)) {
-      ngDevMode && (styleSanitizer ? ngDevMode.stylesApplied++ : ngDevMode.classesApplied++);
-      applyStyling(context !, renderer, element, data, bitMask, styleSetter, styleSanitizer);
-      return true;
-    }
+  if (classesContext) {
+    applyStyling(classesContext, renderer, element, data, state.stylesBitMask, setStyle, styleSanitizer, isHostBinding);
   }
-  return allowFlush;
-}
 
-function contextHasUpdates(context: TStylingContext | null, bitMask: number) {
-  return context && bitMask > BIT_MASK_START_VALUE;
+  resetStylingState();
 }
 
 /**
@@ -497,7 +465,7 @@ function lockAndFinalizeContext(context: TStylingContext): void {
 export function applyStyling(
     context: TStylingContext, renderer: Renderer3 | ProceduralRenderer3 | null, element: RElement,
     bindingData: LStylingData, bitMaskValue: number | boolean, applyStylingFn: ApplyStylingFn,
-    sanitizer: StyleSanitizeFn | null) {
+    sanitizer: StyleSanitizeFn | null, isHostBinding: boolean) {
   const bitMask = normalizeBitMaskValue(bitMaskValue);
   const stylingMapsSyncFn = getStylingMapsSyncFn();
   const mapsGuardMask = getGuardMask(context, TStylingContextIndex.MapBindingsPosition);
@@ -505,14 +473,15 @@ export function applyStyling(
   const mapsMode =
       applyAllValues ? StylingMapsSyncMode.ApplyAllValues : StylingMapsSyncMode.TraverseValues;
 
+  const valuesCount = getValuesCount(context);
+  const valuesCountUpToDefault = valuesCount - 1;
+
   let i = getPropValuesStartPosition(context);
   while (i < context.length) {
-    const valuesCount = getValuesCount(context, i);
-    const guardMask = getGuardMask(context, i);
+    const guardMask = getGuardMask(context, i, isHostBinding);
     if (bitMask & guardMask) {
       let valueApplied = false;
       const prop = getProp(context, i);
-      const valuesCountUpToDefault = valuesCount - 1;
       const defaultValue = getBindingValue(context, i, valuesCountUpToDefault) as string | null;
 
       // case 1: apply prop-based values
@@ -687,7 +656,7 @@ function updateInitialStylingOnContext(
     const value = getMapValue(initialStyling, i);
     if (value) {
       const prop = getMapProp(initialStyling, i);
-      registerBinding(context, INITIAL_STYLING_COUNT_ID, prop, value, false);
+      registerBinding(context, INITIAL_STYLING_COUNT_ID, 0, prop, value, false);
     }
   }
 }

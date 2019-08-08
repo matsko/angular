@@ -173,7 +173,8 @@ import {LView} from '../interfaces/view';
  * Each time a new binding is encountered it is registered into the
  * context. The context then is continually updated until the first
  * styling apply call has been called (this is triggered by the
- * `stylingApply()` instruction for the active element).
+ * `stylingApply()` instruction for the active element---which is
+ * automatically called once an element exits during change detection).
  *
  * # How Styles/Classes are Rendered
  * Each time a styling instruction (e.g. `[class.name]`, `[style.prop]`,
@@ -289,17 +290,23 @@ export interface TStylingContext extends
   /** Configuration data for the context */
   [TStylingContextIndex.ConfigPosition]: TStylingConfigFlags;
 
+  /** The bit guard value for all map-based bindings on an element */
+  [TStylingContextIndex.TotalSourcesPosition]: number;
+
   /** Temporary value used to track directive index entries until
      the old styling code is fully removed. The reason why this
      is required is to figure out which directive is last and,
      when encountered, trigger a styling flush to happen */
   [TStylingContextIndex.LastDirectiveIndexPosition]: number;
 
-  /** The bit guard value for all map-based bindings on an element */
-  [TStylingContextIndex.MapBindingsBitGuardPosition]: number;
+  /** The total amount of map-based bindings present on an element */
+  [TStylingContextIndex.MapBindingsConfigPosition]: number;
 
   /** The total amount of map-based bindings present on an element */
-  [TStylingContextIndex.MapBindingsValuesCountPosition]: number;
+  [TStylingContextIndex.MapBindingsTemplateBitGuardPosition]: number;
+
+  /** The total amount of map-based bindings present on an element */
+  [TStylingContextIndex.MapBindingsHostBindingsBitGuardPosition]: number;
 
   /** The prop value for map-based bindings (there actually isn't a
    * value at all, but this is just used in the context to avoid
@@ -354,23 +361,26 @@ export const enum TStylingConfigFlags {
 export const enum TStylingContextIndex {
   InitialStylingValuePosition = 0,
   ConfigPosition = 1,
-  LastDirectiveIndexPosition = 2,
+  TotalSourcesPosition = 2,
+  LastDirectiveIndexPosition = 3,
 
   // index/offset values for map-based entries (i.e. `[style]`
   // and `[class]` bindings).
-  MapBindingsPosition = 3,
-  MapBindingsBitGuardPosition = 3,
-  MapBindingsValuesCountPosition = 4,
-  MapBindingsPropPosition = 5,
-  MapBindingsBindingsStartPosition = 6,
+  MapBindingsPosition = 4,
+  MapBindingsConfigPosition = 4,
+  MapBindingsTemplateBitGuardPosition = 5,
+  MapBindingsHostBindingsBitGuardPosition = 6,
+  MapBindingsPropPosition = 7,
+  MapBindingsBindingsStartPosition = 8,
 
   // each tuple entry in the context
-  // (mask, count, prop, ...bindings||default-value)
-  ConfigAndGuardOffset = 0,
-  ValuesCountOffset = 1,
-  PropOffset = 2,
-  BindingsStartOffset = 3,
-  MinTupleLength = 4,
+  // (config, templateBitGuard, hostBindingBitGuard, prop, ...bindings||default-value)
+  ConfigOffset = 0,
+  TemplateBitGuardOffset = 1,
+  HostBindingsBitGuardOffset = 2,
+  PropOffset = 3,
+  BindingsStartOffset = 4,
+  MinTupleLength = 5,
 }
 
 /**

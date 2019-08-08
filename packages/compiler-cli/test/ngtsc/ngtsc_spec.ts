@@ -1873,7 +1873,6 @@ runInEachFileSystem(os => {
           i0.ɵɵhostProperty("prop", ctx.bar);
           i0.ɵɵattribute("hello", ctx.foo);
           i0.ɵɵclassProp("someclass", ctx.someClass);
-          i0.ɵɵstylingApply();
         }
       }
     `;

@@ -490,7 +490,6 @@ describe('compiler compliance', () => {
               if (rf & 2) {
                 $r3$.ɵɵstyleProp("background-color", ctx.color);
                 $r3$.ɵɵclassProp("error", ctx.error);
-                $r3$.ɵɵstylingApply();
               }
             },
             encapsulation: 2

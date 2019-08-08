@@ -9,8 +9,8 @@ import {TNode, TNodeFlags} from '../interfaces/node';
 
 import {StylingMapArray, StylingMapArrayIndex, TStylingConfigFlags, TStylingContext, TStylingContextIndex, TStylingContextPropConfigFlags} from './interfaces';
 
-const MAP_BASED_ENTRY_PROP_NAME = '--MAP--';
-const TEMPLATE_DIRECTIVE_INDEX = 0;
+const MAP_BASED_ENTRY_PROP_NAME = '[MAP]';
+export const TEMPLATE_DIRECTIVE_INDEX = 0;
 
 /**
  * Creates a new instance of the `TStylingContext`.
@@ -21,19 +21,17 @@ const TEMPLATE_DIRECTIVE_INDEX = 0;
  * `TStylingContext` with the initial values (see `interfaces.ts` for more info).
  */
 export function allocTStylingContext(initialStyling?: StylingMapArray | null): TStylingContext {
-  // because map-based bindings deal with a dynamic set of values, there
-  // is no way to know ahead of time whether or not sanitization is required.
-  // For this reason the configuration will always mark sanitization as active
-  // (this means that when map-based values are applied then sanitization will
-  // be checked against each property).
   const mapBasedConfig = TStylingContextPropConfigFlags.SanitizationRequired;
   return [
-    initialStyling || [''],  // empty initial-styling map value
-    TStylingConfigFlags.Initial,
-    TEMPLATE_DIRECTIVE_INDEX,
-    mapBasedConfig,
-    0,
-    MAP_BASED_ENTRY_PROP_NAME,
+    initialStyling || [''],       // 1) initial styling values
+    TStylingConfigFlags.Initial,  // 2) config for the styling context
+    0,                            // 3) total amount of styling sources (template, directives, etc...)
+    TEMPLATE_DIRECTIVE_INDEX,     // 4) the last binding source before styling is flushed
+    mapBasedConfig,               // 5) config for all map-based bindings
+    0,                            // 6) template bit mask for map-based bindings
+    0,                            // 7) host bindings bit mask for map-based bindings
+    MAP_BASED_ENTRY_PROP_NAME,    // 8) properties for map-based host bindings
+    null,                         // 9) default value for map-based bindings
   ];
 }
 
@@ -78,7 +76,7 @@ export function getProp(context: TStylingContext, index: number) {
 }
 
 function getPropConfig(context: TStylingContext, index: number): number {
-  return (context[index + TStylingContextIndex.ConfigAndGuardOffset] as number) &
+  return (context[index + TStylingContextIndex.ConfigOffset] as number) &
       TStylingContextPropConfigFlags.Mask;
 }
 
@@ -86,19 +84,18 @@ export function isSanitizationRequired(context: TStylingContext, index: number) 
   return (getPropConfig(context, index) & TStylingContextPropConfigFlags.SanitizationRequired) > 0;
 }
 
-export function getGuardMask(context: TStylingContext, index: number) {
-  const configGuardValue = context[index + TStylingContextIndex.ConfigAndGuardOffset] as number;
-  return configGuardValue >> TStylingContextPropConfigFlags.TotalBits;
+export function getGuardMask(context: TStylingContext, index: number, isHostBinding?: boolean) {
+  const position = index + (isHostBinding ? TStylingContextIndex.HostBindingsBitGuardOffset : TStylingContextIndex.TemplateBitGuardOffset);
+  return context[position] as number;
 }
 
-export function setGuardMask(context: TStylingContext, index: number, maskValue: number) {
-  const config = getPropConfig(context, index);
-  const guardMask = maskValue << TStylingContextPropConfigFlags.TotalBits;
-  context[index + TStylingContextIndex.ConfigAndGuardOffset] = config | guardMask;
+export function setGuardMask(context: TStylingContext, index: number, maskValue: number, isHostBinding?: boolean) {
+  const position = index + (isHostBinding ? TStylingContextIndex.HostBindingsBitGuardOffset : TStylingContextIndex.TemplateBitGuardOffset);
+  context[position] = maskValue;
 }
 
-export function getValuesCount(context: TStylingContext, index: number) {
-  return context[index + TStylingContextIndex.ValuesCountOffset] as number;
+export function getValuesCount(context: TStylingContext): number {
+  return context[TStylingContextIndex.TotalSourcesPosition];
 }
 
 export function getBindingValue(context: TStylingContext, index: number, offset: number) {
@@ -106,7 +103,7 @@ export function getBindingValue(context: TStylingContext, index: number, offset:
 }
 
 export function getDefaultValue(context: TStylingContext, index: number): string|boolean|null {
-  const valuesCount = getValuesCount(context, index);
+  const valuesCount = getValuesCount(context);
   return context[index + TStylingContextIndex.BindingsStartOffset + valuesCount - 1] as string |
       boolean | null;
 }
@@ -137,8 +134,8 @@ export function markContextToPersistState(context: TStylingContext) {
 }
 
 export function getPropValuesStartPosition(context: TStylingContext) {
-  return TStylingContextIndex.MapBindingsBindingsStartPosition +
-      context[TStylingContextIndex.MapBindingsValuesCountPosition];
+  const total = getValuesCount(context);
+  return TStylingContextIndex.MapBindingsBindingsStartPosition + total + 1;
 }
 
 export function isMapBased(prop: string) {

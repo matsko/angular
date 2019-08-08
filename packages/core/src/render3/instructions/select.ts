@@ -8,7 +8,8 @@
 import {assertDataInRange, assertGreaterThan} from '../../util/assert';
 import {executeCheckHooks, executeInitAndCheckHooks} from '../hooks';
 import {FLAGS, HEADER_OFFSET, InitPhaseState, LView, LViewFlags, TVIEW} from '../interfaces/view';
-import {getCheckNoChangesMode, getLView, setSelectedIndex} from '../state';
+import {getCheckNoChangesMode, getLView, setSelectedIndex, executeElementExitFn, resetActiveElementFlags} from '../state';
+import {resetStylingState} from '../styling_next/state';
 
 
 
@@ -41,6 +42,8 @@ export function selectInternal(lView: LView, index: number, checkNoChangesMode: 
   ngDevMode && assertGreaterThan(index, -1, 'Invalid index');
   ngDevMode && assertDataInRange(lView, index + HEADER_OFFSET);
 
+  executeElementExitFn();
+
   // Flush the initial hooks for elements in the view that have been added up to this point.
   // PERF WARNING: do NOT extract this to a separate function without running benchmarks
   if (!checkNoChangesMode) {
@@ -64,4 +67,7 @@ export function selectInternal(lView: LView, index: number, checkNoChangesMode: 
   // state. If we run `setSelectedIndex` *before* we run the hooks, in some cases the selected index
   // will be altered by the time we leave the `ɵɵselect` instruction.
   setSelectedIndex(index);
+
+  resetStylingState();
+  resetActiveElementFlags();
 }
