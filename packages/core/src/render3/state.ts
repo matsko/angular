@@ -13,7 +13,7 @@ import {assertLViewOrUndefined} from './assert';
 import {ComponentDef, DirectiveDef} from './interfaces/definition';
 import {TElementNode, TNode, TViewNode} from './interfaces/node';
 import {CONTEXT, DECLARATION_VIEW, LView, OpaqueViewState, TVIEW} from './interfaces/view';
-import {resetAllStylingState, resetStylingState} from './styling_next/state';
+import {resetStylingState} from './styling_next/state';
 
 
 /**
@@ -132,28 +132,6 @@ export function getLView(): LView {
 let activeDirectiveId = 0;
 
 /**
- * Position depth (with respect from leaf to root) in a directive sub-class inheritance chain.
- */
-let activeDirectiveSuperClassDepthPosition = 0;
-
-/**
- * Total count of how many directives are a part of an inheritance chain.
- *
- * When directives are sub-classed (extended) from one to another, Angular
- * needs to keep track of exactly how many were encountered so it can accurately
- * generate the next directive id (once the next directive id is visited).
- * Normally the next directive id just a single incremented value from the
- * previous one, however, if the previous directive is a part of an inheritance
- * chain (a series of sub-classed directives) then the incremented value must
- * also take into account the total amount of sub-classed values.
- *
- * Note that this value resets back to zero once the next directive is
- * visited (when `incrementActiveDirectiveId` or `setActiveHostElement`
- * is called).
- */
-let activeDirectiveSuperClassHeight = 0;
-
-/**
  * Flags used for an active element during change detection.
  *
  * These flags are used to signal whether to run any sub routine code when
@@ -213,8 +191,6 @@ export function setActiveHostElement(elementIndex: number | null = null) {
     }
     setSelectedIndex(elementIndex === null ? -1 : elementIndex);
     activeDirectiveId = 0;
-    activeDirectiveSuperClassDepthPosition = 0;
-    activeDirectiveSuperClassHeight = 0;
     if (hasActiveElementFlag(ActiveElementFlags.ResetStylesOnExit)) {
       resetStylingState();
     }
@@ -294,71 +270,7 @@ export function incrementActiveDirectiveId() {
   // directive uniqueId is not set anywhere--it is just incremented between
   // each hostBindings call and is useful for helping instruction code
   // uniquely determine which directive is currently active when executed.
-  activeDirectiveId += 1 + activeDirectiveSuperClassHeight;
-
-  // because we are dealing with a new directive this
-  // means we have exited out of the inheritance chain
-  activeDirectiveSuperClassDepthPosition = 0;
-  activeDirectiveSuperClassHeight = 0;
-}
-
-/**
- * Set the current super class (reverse inheritance) position depth for a directive.
- *
- * For example we have two directives: Child and Other (but Child is a sub-class of Parent)
- * <div child-dir other-dir></div>
- *
- * // increment
- * parentInstance->hostBindings() (depth = 1)
- * // decrement
- * childInstance->hostBindings() (depth = 0)
- * otherInstance->hostBindings() (depth = 0 b/c it's a different directive)
- *
- * Note that this is only active when `hostBinding` functions are being processed.
- */
-export function adjustActiveDirectiveSuperClassDepthPosition(delta: number) {
-  activeDirectiveSuperClassDepthPosition += delta;
-
-  // we keep track of the height value so that when the next directive is visited
-  // then Angular knows to generate a new directive id value which has taken into
-  // account how many sub-class directives were a part of the previous directive.
-  activeDirectiveSuperClassHeight =
-      Math.max(activeDirectiveSuperClassHeight, activeDirectiveSuperClassDepthPosition);
-}
-
-/**
- * Returns he current depth of the super/sub class inheritance chain.
- *
- * This will return how many inherited directive/component classes
- * exist in the current chain.
- *
- * ```typescript
- * @Directive({ selector: '[super-dir]' })
- * class SuperDir {}
- *
- * @Directive({ selector: '[sub-dir]' })
- * class SubDir extends SuperDir {}
- *
- * // if `<div sub-dir>` is used then the super class height is `1`
- * // if `<div super-dir>` is used then the super class height is `0`
- * ```
- */
-export function getActiveDirectiveSuperClassHeight() {
-  return activeDirectiveSuperClassHeight;
-}
-
-/**
- * Returns the current super class (reverse inheritance) depth for a directive.
- *
- * This is designed to help instruction code distinguish different hostBindings
- * calls from each other when a directive has extended from another directive.
- * Normally using the directive id value is enough, but with the case
- * of parent/sub-class directive inheritance more information is required.
- *
- * Note that this is only active when `hostBinding` functions are being processed.
- */
-export function getActiveDirectiveSuperClassDepth() {
-  return activeDirectiveSuperClassDepthPosition;
+  activeDirectiveId += 1;
 }
 
 /**
@@ -530,7 +442,7 @@ export function resetComponentState() {
   elementDepthCount = 0;
   bindingsEnabled = true;
   setCurrentStyleSanitizer(null);
-  resetAllStylingState();
+  resetStylingState();
 }
 
 let _selectedIndex = -1;

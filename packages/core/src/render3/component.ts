@@ -23,7 +23,7 @@ import {TElementNode, TNode, TNodeType} from './interfaces/node';
 import {PlayerHandler} from './interfaces/player';
 import {RElement, Renderer3, RendererFactory3, domRendererFactory3} from './interfaces/renderer';
 import {CONTEXT, HEADER_OFFSET, LView, LViewFlags, RootContext, RootContextFlags, TVIEW} from './interfaces/view';
-import {getPreviousOrParentTNode, resetComponentState, selectView, setActiveHostElement, incrementActiveDirectiveId} from './state';
+import {getPreviousOrParentTNode, incrementActiveDirectiveId, resetComponentState, selectView, setActiveHostElement} from './state';
 import {publishDefaultGlobalUtils} from './util/global_utils';
 import {defaultScheduler, stringifyForError} from './util/misc_utils';
 import {getRootContext} from './util/view_traversal_utils';

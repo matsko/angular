@@ -81,7 +81,7 @@
     "name": "NG_ELEMENT_ID"
   },
   {
-    "name": "NG_INJECTABLE_DEF"
+    "name": "NG_FACTORY_DEF"
   },
   {
     "name": "NG_PIPE_DEF"
@@ -171,7 +171,7 @@
     "name": "_selectedIndexFlags"
   },
   {
-    "name": "_stateStorage"
+    "name": "_state"
   },
   {
     "name": "addComponentLogic"
@@ -181,6 +181,9 @@
   },
   {
     "name": "addToViewTree"
+  },
+  {
+    "name": "allocStylingMapArray"
   },
   {
     "name": "appendChild"
@@ -255,7 +258,7 @@
     "name": "elementCreate"
   },
   {
-    "name": "enterView"
+    "name": "executeCheckHooks"
   },
   {
     "name": "executeContentQueries"
@@ -264,10 +267,7 @@
     "name": "executeElementExitFn"
   },
   {
-    "name": "executeHooks"
-  },
-  {
-    "name": "executePreOrderHooks"
+    "name": "executeInitAndCheckHooks"
   },
   {
     "name": "executeTemplate"
@@ -322,6 +322,9 @@
   },
   {
     "name": "getElementDepthCount"
+  },
+  {
+    "name": "getFactoryDef"
   },
   {
     "name": "getHostNative"
@@ -429,6 +432,9 @@
     "name": "incrementActiveDirectiveId"
   },
   {
+    "name": "incrementInitPhaseFlags"
+  },
+  {
     "name": "initNodeFlags"
   },
   {
@@ -496,9 +502,6 @@
   },
   {
     "name": "isStylingValueDefined"
-  },
-  {
-    "name": "leaveView"
   },
   {
     "name": "locateHostElement"
@@ -585,9 +588,6 @@
     "name": "resetActiveElementFlags"
   },
   {
-    "name": "resetAllStylingState"
-  },
-  {
     "name": "resetComponentState"
   },
   {
@@ -607,6 +607,9 @@
   },
   {
     "name": "selectInternal"
+  },
+  {
+    "name": "selectView"
   },
   {
     "name": "setActiveHostElement"
@@ -691,9 +694,6 @@
   },
   {
     "name": "ɵɵdefineComponent"
-  },
-  {
-    "name": "ɵɵdefineInjectable"
   },
   {
     "name": "ɵɵdefineInjector"

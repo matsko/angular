@@ -5,11 +5,11 @@
 * Use of this source code is governed by an MIT-style license that can be
 * found in the LICENSE file at https://angular.io/license
 */
+import {RElement} from '../interfaces/renderer';
+import {TEMPLATE_DIRECTIVE_INDEX} from './util';
 
 /**
  * --------
- *
- * // TODO(matsko): add updateMask info
  *
  * This file contains all state-based logic for styling in Angular.
  *
@@ -44,43 +44,50 @@
  * --------
  */
 
-let _stylingState: StylingState|null = null;
-
-// this value is not used outside this file and is only here
-// as a caching check for when the element changes.
-let _stylingElement: any = null;
-
 /**
  * Used as a state reference for update values between style/class binding instructions.
  */
 export interface StylingState {
+  element: RElement|null;
   classesBitMask: number;
   classesIndex: number;
   stylesBitMask: number;
   stylesIndex: number;
+  directiveIndex: number;
+  sourceIndex: number;
 }
 
-export const STYLING_INDEX_START_VALUE = 1;
-export const BIT_MASK_START_VALUE = 0;
+// these values will get filled in the very firs time this is accessed...
+const _state: StylingState = {
+  element: null,
+  classesBitMask: -1,
+  classesIndex: -1,
+  stylesBitMask: -1,
+  stylesIndex: -1,
+  directiveIndex: -1,
+  sourceIndex: -1,
+};
 
-export function getStylingState(element: any): StylingState {
-  if (!_stylingElement || element !== _stylingElement) {
-    _stylingElement = element;
-    _stylingState = _stylingState || {
-      classesBitMask: BIT_MASK_START_VALUE,
-      classesIndex: STYLING_INDEX_START_VALUE,
-      stylesBitMask: BIT_MASK_START_VALUE,
-      stylesIndex: STYLING_INDEX_START_VALUE,
-    };
+// the `0` start value is reserved for [map]-based entries
+const INDEX_START_VALUE = 1;
+const BIT_MASK_START_VALUE = 0;
+
+export function getStylingState(element: RElement, directiveIndex: number): StylingState {
+  if (_state.element !== element) {
+    _state.element = element;
+    _state.classesBitMask = BIT_MASK_START_VALUE;
+    _state.classesIndex = INDEX_START_VALUE;
+    _state.stylesBitMask = BIT_MASK_START_VALUE;
+    _state.stylesIndex = INDEX_START_VALUE;
+    _state.directiveIndex = directiveIndex;
+    _state.sourceIndex = directiveIndex === TEMPLATE_DIRECTIVE_INDEX ? 0 : 1;
+  } else if (_state.directiveIndex !== directiveIndex) {
+    _state.directiveIndex = directiveIndex;
+    _state.sourceIndex++;
   }
-  return _stylingState !;
+  return _state;
 }
 
 export function resetStylingState() {
-  _stylingState = null;
-  _stylingElement = null;
-}
-
-export function resetAllStylingState() {
-  resetStylingState();
+  _state.element = null;
 }

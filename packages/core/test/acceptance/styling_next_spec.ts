@@ -6,9 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 import {Component, Directive, HostBinding, Input, ViewChild} from '@angular/core';
-import {SecurityContext} from '@angular/core/src/core';
 import {DebugNode, LViewDebug, toDebug} from '@angular/core/src/render3/instructions/lview_debug';
-import {getCheckNoChangesMode} from '@angular/core/src/render3/state';
 import {loadLContextFromNode} from '@angular/core/src/render3/util/discovery_utils';
 import {ngDevModeResetPerfCounters as resetStylingCounters} from '@angular/core/src/util/ng_dev_mode';
 import {TestBed} from '@angular/core/testing';
@@ -17,6 +15,8 @@ import {expect} from '@angular/platform-browser/testing/src/matchers';
 import {onlyInIvy} from '@angular/private/testing';
 
 describe('new styling integration', () => {
+  beforeEach(() => resetStylingCounters());
+
   onlyInIvy('ivy resolves styling across directives, components and templates in unison')
       .it('should apply single property styles/classes to the element and default to any static styling values',
           () => {
@@ -125,6 +125,74 @@ describe('new styling integration', () => {
 
         expect(element.style.width).toEqual('600px');
       });
+
+  onlyInIvy('ivy resolves styling across directives, components and templates in unison')
+      .it('should only run stylingFlush once when there are no collisions between styling properties',
+          () => {
+            @Directive({selector: '[dir-with-styling]'})
+            class DirWithStyling {
+              @HostBinding('style.font-size') public fontSize = '100px';
+            }
+
+            @Component({selector: 'comp-with-styling'})
+            class CompWithStyling {
+              @HostBinding('style.width') public width = '900px';
+
+              @HostBinding('style.height') public height = '900px';
+            }
+
+            @Component({
+              template: `
+        <comp-with-styling
+          [style.opacity]="opacity"
+          dir-with-styling>...</comp-with-styling>
+      `
+            })
+            class Cmp {
+              opacity: string|null = '0.5';
+              @ViewChild(CompWithStyling, {static: true})
+              compWithStyling: CompWithStyling|null = null;
+              @ViewChild(DirWithStyling, {static: true}) dirWithStyling: DirWithStyling|null = null;
+            }
+
+            TestBed.configureTestingModule({declarations: [Cmp, DirWithStyling, CompWithStyling]});
+            const fixture = TestBed.createComponent(Cmp);
+            fixture.detectChanges();
+
+            const component = fixture.componentInstance;
+            const element = fixture.nativeElement.querySelector('comp-with-styling');
+            const node = getDebugNode(element) !;
+
+            const styles = node.styles !;
+            const config = styles.config;
+            expect(config.hasCollisions).toBeFalsy();
+            expect(config.hasMapBindings).toBeFalsy();
+            expect(config.hasPropBindings).toBeTruthy();
+            expect(config.allowDirectStyling).toBeTruthy();
+
+            expect(element.style.opacity).toEqual('0.5');
+            expect(element.style.width).toEqual('900px');
+            expect(element.style.height).toEqual('900px');
+            expect(element.style.fontSize).toEqual('100px');
+
+            // once for the template flush and again for the host bindings
+            expect(ngDevMode !.flushStyling).toEqual(2);
+            resetStylingCounters();
+
+            component.opacity = '0.6';
+            component.compWithStyling !.height = '100px';
+            component.compWithStyling !.width = '100px';
+            component.dirWithStyling !.fontSize = '50px';
+            fixture.detectChanges();
+
+            expect(element.style.opacity).toEqual('0.6');
+            expect(element.style.width).toEqual('100px');
+            expect(element.style.height).toEqual('100px');
+            expect(element.style.fontSize).toEqual('50px');
+
+            // there is no need to flush styling since the styles are applied directly
+            expect(ngDevMode !.flushStyling).toEqual(0);
+          });
 
   onlyInIvy('ivy resolves styling across directives, components and templates in unison')
       .it('should combine all styling across the template, directive and component host bindings',
@@ -242,6 +310,7 @@ describe('new styling integration', () => {
 
             fixture.componentInstance.w3 = null;
             fixture.detectChanges();
+
             expect(styles.values).toEqual({
               'width': '200px',
             });
@@ -387,6 +456,7 @@ describe('new styling integration', () => {
             const node = getDebugNode(element) !;
 
             const styles = node.styles !;
+
             expect(styles.values).toEqual({
               'width': '555px',
               'color': 'red',
@@ -511,7 +581,8 @@ describe('new styling integration', () => {
             resetStylingCounters();
             fixture.detectChanges();
 
-            assertStyleCounters(1, 0);
+            // the width is applied both in TEMPLATE and in HOST_BINDINGS mode
+            assertStyleCounters(2, 0);
             assertStyle(element, 'width', '999px');
             assertStyle(element, 'height', '123px');
 
@@ -519,8 +590,8 @@ describe('new styling integration', () => {
             resetStylingCounters();
             fixture.detectChanges();
 
-            // both are applied because the map was altered
-            assertStyleCounters(2, 0);
+            // the width is only applied once
+            assertStyleCounters(1, 0);
             assertStyle(element, 'width', '0px');
             assertStyle(element, 'height', '123px');
 
@@ -528,8 +599,8 @@ describe('new styling integration', () => {
             resetStylingCounters();
             fixture.detectChanges();
 
-            // all three are applied because the map was altered
-            assertStyleCounters(3, 0);
+            // only the width and color have changed
+            assertStyleCounters(2, 0);
             assertStyle(element, 'width', '1000px');
             assertStyle(element, 'height', '123px');
             assertStyle(element, 'color', 'red');
@@ -538,7 +609,9 @@ describe('new styling integration', () => {
             resetStylingCounters();
             fixture.detectChanges();
 
-            assertStyleCounters(1, 0);
+            // height gets applied twice and all other
+            // values get applied
+            assertStyleCounters(4, 0);
             assertStyle(element, 'width', '1000px');
             assertStyle(element, 'height', '1000px');
             assertStyle(element, 'color', 'red');
@@ -547,8 +620,7 @@ describe('new styling integration', () => {
             resetStylingCounters();
             fixture.detectChanges();
 
-            // all four are applied because the map was altered
-            assertStyleCounters(4, 0);
+            assertStyleCounters(5, 0);
             assertStyle(element, 'width', '2000px');
             assertStyle(element, 'height', '1000px');
             assertStyle(element, 'color', 'blue');
@@ -559,60 +631,11 @@ describe('new styling integration', () => {
             fixture.detectChanges();
 
             // all four are applied because the map was altered
-            assertStyleCounters(3, 1);
+            assertStyleCounters(4, 1);
             assertStyle(element, 'width', '2000px');
             assertStyle(element, 'height', '1000px');
             assertStyle(element, 'color', 'blue');
             assertStyle(element, 'opacity', '');
-          });
-
-  onlyInIvy('ivy resolves styling across directives, components and templates in unison')
-      .it('should only persist state values in a local map if template AND host styling is used together',
-          () => {
-            @Directive({selector: '[dir-that-sets-styling]'})
-            class Dir {
-              @HostBinding('style.width') w = '100px';
-            }
-
-            @Component({
-              template: `
-                <div #a dir-that-sets-styling></div>
-                <div #b [style.width]="w"></div>
-                <div #c dir-that-sets-styling [style.width]="w"></div>
-              `
-            })
-            class Cmp {
-              w = '200px';
-              @ViewChild('a', {read: Dir, static: true}) a !: Dir;
-              @ViewChild('c', {read: Dir, static: true}) c !: Dir;
-            }
-
-            TestBed.configureTestingModule({declarations: [Cmp, Dir]});
-            const fixture = TestBed.createComponent(Cmp);
-            const comp = fixture.componentInstance;
-            fixture.detectChanges();
-
-            resetStylingCounters();
-
-            comp.a.w = '999px';
-            comp.w = '999px';
-            comp.c.w = '999px';
-            fixture.detectChanges();
-            expect(ngDevMode !.stylingWritePersistedState).toEqual(totalUpdates(1));
-
-            comp.a.w = '888px';
-            fixture.detectChanges();
-            expect(ngDevMode !.stylingWritePersistedState).toEqual(totalUpdates(2));
-
-            comp.c.w = '777px';
-            fixture.detectChanges();
-            expect(ngDevMode !.stylingWritePersistedState).toEqual(totalUpdates(3));
-
-            function totalUpdates(value: number) {
-              // this is doubled because detectChanges is run twice to
-              // see to check for checkNoChanges
-              return value * 2;
-            }
           });
 
   onlyInIvy('only ivy has style/class bindings debugging support')
@@ -912,7 +935,6 @@ describe('new styling integration', () => {
 
         TestBed.configureTestingModule({declarations: [Cmp, DirOne, DirTwo]});
         const fixture = TestBed.createComponent(Cmp);
-        const comp = fixture.componentInstance;
         fixture.detectChanges();
 
         const dirOne = fixture.nativeElement.querySelector('dir-one');

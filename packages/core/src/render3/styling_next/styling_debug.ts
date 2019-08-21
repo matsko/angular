@@ -12,9 +12,9 @@ import {getCurrentStyleSanitizer} from '../state';
 import {attachDebugObject} from '../util/debug_utils';
 
 import {applyStyling} from './bindings';
-import {ApplyStylingFn, LStylingData, TStylingContext, TStylingContextIndex} from './interfaces';
+import {ApplyStylingFn, LStylingData, StylingConfig, TStylingContext, TStylingContextIndex} from './interfaces';
 import {activateStylingMapFeature} from './map_based_bindings';
-import {getDefaultValue, getGuardMask, getProp, getValuesCount, isContextLocked, isMapBased, isSanitizationRequired} from './util';
+import {allowDirectStylingApply, getDefaultValue, getGuardMask, getProp, getValuesCount, hasConfig, isContextLocked, isMapBased, isSanitizationRequired} from './util';
 
 
 
@@ -53,6 +53,15 @@ export interface DebugStyling {
   /** The associated TStylingContext instance */
   context: TStylingContext;
 
+  config: {
+    hasMapBindings: boolean; hasPropBindings: boolean; hasCollisions: boolean;
+    hasTemplateBindings: boolean;
+    hasHostBindings: boolean;
+    templateBindingsLocked: boolean;
+    hostBindingsLocked: boolean;
+    allowDirectStyling: boolean;
+  };
+
   /**
    * A summarization of each style/class property
    * present in the context.
@@ -85,7 +94,13 @@ export interface TStylingTupleSummary {
    * The bit guard mask that is used to compare and protect against
    * styling changes when and styling bindings update
    */
-  guardMask: number;
+  templateBitMask: number;
+
+  /**
+   * The bit guard mask that is used to compare and protect against
+   * styling changes when and styling bindings update
+   */
+  hostBindingsBitMask: number;
 
   /**
    * Whether or not the entry requires sanitization
@@ -121,7 +136,8 @@ export function attachStylingDebugObject(context: TStylingContext) {
 class TStylingContextDebug {
   constructor(public readonly context: TStylingContext) {}
 
-  get isLocked() { return isContextLocked(this.context); }
+  get isTemplateLocked() { return isContextLocked(this.context, true); }
+  get isHostBindingsLocked() { return isContextLocked(this.context, false); }
 
   /**
    * Returns a detailed summary of each styling entry in the context.
@@ -131,16 +147,17 @@ class TStylingContextDebug {
   get entries(): {[prop: string]: TStylingTupleSummary} {
     const context = this.context;
     const entries: {[prop: string]: TStylingTupleSummary} = {};
-    const start = TStylingContextIndex.MapBindingsPosition;
+    const start = TStylingContextIndex.ValuesStartPosition;
     let i = start;
     while (i < context.length) {
-      const valuesCount = getValuesCount(context, i);
+      const valuesCount = getValuesCount(context);
       // the context may contain placeholder values which are populated ahead of time,
       // but contain no actual binding values. In this situation there is no point in
       // classifying this as an "entry" since no real data is stored here yet.
       if (valuesCount) {
         const prop = getProp(context, i);
-        const guardMask = getGuardMask(context, i);
+        const templateBitMask = getGuardMask(context, i, false);
+        const hostBindingsBitMask = getGuardMask(context, i, true);
         const defaultValue = getDefaultValue(context, i);
         const sanitizationRequired = isSanitizationRequired(context, i);
         const bindingsStartPosition = i + TStylingContextIndex.BindingsStartOffset;
@@ -150,7 +167,9 @@ class TStylingContextDebug {
           sources.push(context[bindingsStartPosition + j] as number | string | null);
         }
 
-        entries[prop] = {prop, guardMask, sanitizationRequired, valuesCount, defaultValue, sources};
+        entries[prop] = {
+            prop,         templateBitMask, hostBindingsBitMask, sanitizationRequired, valuesCount,
+            defaultValue, sources};
       }
 
       i += TStylingContextIndex.BindingsStartOffset + valuesCount;
@@ -191,6 +210,23 @@ export class NodeStylingDebug implements DebugStyling {
     return entries;
   }
 
+  get config() {
+    const hasMapBindings = hasConfig(this.context, StylingConfig.HasMapBindings);
+    const hasPropBindings = hasConfig(this.context, StylingConfig.HasPropBindings);
+    const hasCollisions = hasConfig(this.context, StylingConfig.HasCollisions);
+    const hasTemplateBindings = hasConfig(this.context, StylingConfig.HasTemplateBindings);
+    const hasHostBindings = hasConfig(this.context, StylingConfig.HasHostBindings);
+    const templateBindingsLocked = hasConfig(this.context, StylingConfig.TemplateBindingsLocked);
+    const hostBindingsLocked = hasConfig(this.context, StylingConfig.HostBindingsLocked);
+    const allowDirectStyling =
+        allowDirectStylingApply(this.context, false) || allowDirectStylingApply(this.context, true);
+
+    return {
+        hasMapBindings,  hasPropBindings,        hasCollisions,      hasTemplateBindings,
+        hasHostBindings, templateBindingsLocked, hostBindingsLocked, allowDirectStyling,
+    };
+  }
+
   /**
    * Returns a key/value map of all the styles/classes that were last applied to the element.
    */
@@ -205,16 +241,21 @@ export class NodeStylingDebug implements DebugStyling {
     // element is only used when the styling algorithm attempts to
     // style the value (and we mock out the stylingApplyFn anyway).
     const mockElement = {} as any;
-    const hasMaps = getValuesCount(this.context, TStylingContextIndex.MapBindingsPosition) > 0;
+    const hasMaps = hasConfig(this.context, StylingConfig.HasMapBindings);
     if (hasMaps) {
       activateStylingMapFeature();
     }
 
     const mapFn: ApplyStylingFn =
         (renderer: any, element: RElement, prop: string, value: string | null,
-         bindingIndex?: number | null) => { fn(prop, value, bindingIndex || null); };
+         bindingIndex?: number | null) => fn(prop, value, bindingIndex || null);
 
     const sanitizer = this._isClassBased ? null : (this._sanitizer || getCurrentStyleSanitizer());
-    applyStyling(this.context, null, mockElement, this._data, true, mapFn, sanitizer);
+
+    // run the template bindings
+    applyStyling(this.context, null, mockElement, this._data, true, mapFn, sanitizer, false);
+
+    // and also the host bindings
+    applyStyling(this.context, null, mockElement, this._data, true, mapFn, sanitizer, true);
   }
 }

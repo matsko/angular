@@ -60,7 +60,7 @@ export interface SafeUrl extends SafeValue {}
 export interface SafeResourceUrl extends SafeValue {}
 
 
-abstract class SafeValueImpl implements SafeValue {
+export abstract class SafeValueImpl implements SafeValue {
   constructor(public changingThisBreaksApplicationSecurity: string) {
     // empty
   }

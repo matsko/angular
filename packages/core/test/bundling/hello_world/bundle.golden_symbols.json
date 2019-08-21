@@ -72,7 +72,7 @@
     "name": "NG_ELEMENT_ID"
   },
   {
-    "name": "NG_INJECTABLE_DEF"
+    "name": "NG_FACTORY_DEF"
   },
   {
     "name": "NG_PIPE_DEF"
@@ -150,7 +150,7 @@
     "name": "_selectedIndexFlags"
   },
   {
-    "name": "_stateStorage"
+    "name": "_state"
   },
   {
     "name": "addToViewTree"
@@ -213,16 +213,13 @@
     "name": "domRendererFactory3"
   },
   {
-    "name": "enterView"
+    "name": "executeCheckHooks"
   },
   {
     "name": "executeElementExitFn"
   },
   {
-    "name": "executeHooks"
-  },
-  {
-    "name": "executePreOrderHooks"
+    "name": "executeInitAndCheckHooks"
   },
   {
     "name": "executeTemplate"
@@ -259,6 +256,9 @@
   },
   {
     "name": "getDirectiveDef"
+  },
+  {
+    "name": "getFactoryDef"
   },
   {
     "name": "getHostNative"
@@ -336,6 +336,9 @@
     "name": "incrementActiveDirectiveId"
   },
   {
+    "name": "incrementInitPhaseFlags"
+  },
+  {
     "name": "initNodeFlags"
   },
   {
@@ -367,9 +370,6 @@
   },
   {
     "name": "isRootView"
-  },
-  {
-    "name": "leaveView"
   },
   {
     "name": "locateHostElement"
@@ -435,9 +435,6 @@
     "name": "resetActiveElementFlags"
   },
   {
-    "name": "resetAllStylingState"
-  },
-  {
     "name": "resetComponentState"
   },
   {
@@ -448,6 +445,9 @@
   },
   {
     "name": "selectInternal"
+  },
+  {
+    "name": "selectView"
   },
   {
     "name": "setActiveHostElement"
@@ -502,9 +502,6 @@
   },
   {
     "name": "ɵɵdefineComponent"
-  },
-  {
-    "name": "ɵɵdefineInjectable"
   },
   {
     "name": "ɵɵtext"

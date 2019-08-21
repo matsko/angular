@@ -10,21 +10,21 @@ import {ɵɵselect} from '../../../../src/render3/instructions/select';
 import {refreshView} from '../../../../src/render3/instructions/shared';
 import {RenderFlags} from '../../../../src/render3/interfaces/definition';
 import {TVIEW} from '../../../../src/render3/interfaces/view';
-import {ɵɵstyleProp, ɵɵstyling, ɵɵstylingApply} from '../../../../src/render3/styling_next/instructions';
+import {applyStyling, ɵɵstyleProp, ɵɵstyling} from '../../../../src/render3/styling_next/instructions';
 import {setupRootViewWithEmbeddedViews} from '../setup';
 
 `<ng-template>
   <div>
-    <button [style.backgroundColor]="'color1'"></button>              
-    <button [style.backgroundColor]="'color2'"></button>              
-    <button [style.backgroundColor]="'color3'"></button>              
-    <button [style.backgroundColor]="'color4'"></button>              
-    <button [style.backgroundColor]="'color5'"></button>              
-    <button [style.backgroundColor]="'color6'"></button>              
-    <button [style.backgroundColor]="'color7'"></button>              
-    <button [style.backgroundColor]="'color8'"></button>              
-    <button [style.backgroundColor]="'color9'"></button>              
-    <button [style.backgroundColor]="'color10'"></button>              
+    <button [style.backgroundColor]="'color1'"></button>
+    <button [style.backgroundColor]="'color2'"></button>
+    <button [style.backgroundColor]="'color3'"></button>
+    <button [style.backgroundColor]="'color4'"></button>
+    <button [style.backgroundColor]="'color5'"></button>
+    <button [style.backgroundColor]="'color6'"></button>
+    <button [style.backgroundColor]="'color7'"></button>
+    <button [style.backgroundColor]="'color8'"></button>
+    <button [style.backgroundColor]="'color9'"></button>
+    <button [style.backgroundColor]="'color10'"></button>
   </div>
 </ng-template>`;
 function testTemplate(rf: RenderFlags, ctx: any) {
@@ -65,34 +65,34 @@ function testTemplate(rf: RenderFlags, ctx: any) {
   if (rf & 2) {
     ɵɵselect(1);
     ɵɵstyleProp('background-color', 'color1');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(2);
     ɵɵstyleProp('background-color', 'color2');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(3);
     ɵɵstyleProp('background-color', 'color3');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(4);
     ɵɵstyleProp('background-color', 'color4');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(5);
     ɵɵstyleProp('background-color', 'color5');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(6);
     ɵɵstyleProp('background-color', 'color6');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(7);
     ɵɵstyleProp('background-color', 'color7');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(8);
     ɵɵstyleProp('background-color', 'color8');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(9);
     ɵɵstyleProp('background-color', 'color9');
-    ɵɵstylingApply();
+    applyStyling();
     ɵɵselect(10);
     ɵɵstyleProp('background-color', 'color10');
-    ɵɵstylingApply();
+    applyStyling();
   }
 }
 

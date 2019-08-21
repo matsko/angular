@@ -15,12 +15,13 @@ describe('styling context', () => {
     const context = debug.context;
     expect(debug.entries).toEqual({});
 
-    registerBinding(context, 1, 'width', '100px');
+    registerBinding(context, 1, 0, 'width', '100px');
     expect(debug.entries['width']).toEqual({
       prop: 'width',
       valuesCount: 1,
       sanitizationRequired: false,
-      guardMask: buildGuardMask(),
+      templateBitMask: buildGuardMask(),
+      hostBindingsBitMask: buildGuardMask(),
       defaultValue: '100px',
       sources: ['100px'],
     });
@@ -30,7 +31,7 @@ describe('styling context', () => {
       prop: 'width',
       sanitizationRequired: false,
       valuesCount: 2,
-      guardMask: buildGuardMask(2),
+      templateBitMask: buildGuardMask(2),
       defaultValue: '100px',
       sources: [20, '100px'],
     });
@@ -41,7 +42,7 @@ describe('styling context', () => {
       prop: 'height',
       valuesCount: 3,
       sanitizationRequired: false,
-      guardMask: buildGuardMask(3, 4),
+      templateBitMask: buildGuardMask(3, 4),
       defaultValue: null,
       sources: [10, 15, null],
     });
@@ -58,7 +59,7 @@ describe('styling context', () => {
       prop: 'width',
       valuesCount: 2,
       sanitizationRequired: false,
-      guardMask: buildGuardMask(1),
+      templateBitMask: buildGuardMask(1),
       defaultValue: null,
       sources: [123, null],
     });
@@ -74,7 +75,7 @@ describe('styling context', () => {
       prop: 'width',
       valuesCount: 1,
       sanitizationRequired: false,
-      guardMask: buildGuardMask(),
+      templateBitMask: buildGuardMask(),
       defaultValue: null,
       sources: [null]
     });
@@ -84,7 +85,7 @@ describe('styling context', () => {
       prop: 'width',
       valuesCount: 1,
       sanitizationRequired: false,
-      guardMask: buildGuardMask(),
+      templateBitMask: buildGuardMask(),
       defaultValue: '100px',
       sources: ['100px']
     });
@@ -94,7 +95,7 @@ describe('styling context', () => {
       prop: 'width',
       valuesCount: 1,
       sanitizationRequired: false,
-      guardMask: buildGuardMask(),
+      templateBitMask: buildGuardMask(),
       defaultValue: '100px',
       sources: ['100px']
     });

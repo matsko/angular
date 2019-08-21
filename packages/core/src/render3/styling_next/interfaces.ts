@@ -284,94 +284,81 @@ import {LView} from '../interfaces/view';
  */
 export interface TStylingContext extends
     Array<number|string|number|boolean|null|StylingMapArray|{}> {
-  /** Initial value position for static styles */
-  [TStylingContextIndex.InitialStylingValuePosition]: StylingMapArray;
-
   /** Configuration data for the context */
-  [TStylingContextIndex.ConfigPosition]: TStylingConfigFlags;
+  [TStylingContextIndex.ConfigPosition]: StylingConfig;
 
   /** The bit guard value for all map-based bindings on an element */
   [TStylingContextIndex.TotalSourcesPosition]: number;
 
-  /** Temporary value used to track directive index entries until
-     the old styling code is fully removed. The reason why this
-     is required is to figure out which directive is last and,
-     when encountered, trigger a styling flush to happen */
-  [TStylingContextIndex.LastDirectiveIndexPosition]: number;
-
-  /** The total amount of map-based bindings present on an element */
-  [TStylingContextIndex.MapBindingsConfigPosition]: number;
-
-  /** The total amount of map-based bindings present on an element */
-  [TStylingContextIndex.MapBindingsTemplateBitGuardPosition]: number;
-
-  /** The total amount of map-based bindings present on an element */
-  [TStylingContextIndex.MapBindingsHostBindingsBitGuardPosition]: number;
-
-  /** The prop value for map-based bindings (there actually isn't a
-   * value at all, but this is just used in the context to avoid
-   * having any special code to update the binding information for
-   * map-based entries). */
-  [TStylingContextIndex.MapBindingsPropPosition]: string;
+  /** Initial value position for static styles */
+  [TStylingContextIndex.InitialStylingValuePosition]: StylingMapArray;
 }
 
 /**
- * A series of flags used to configure the config value present within a
- * `TStylingContext` value.
+ * A series of flags used to configure the config value present within an
+ * instance of `TStylingContext` or `StylingMapArray`.
  */
-export const enum TStylingConfigFlags {
+export const enum StylingConfig {
   /**
    * The initial state of the styling context config
    */
-  Initial = 0b0,
+  Initial = 0b0000000,
 
   /**
-   * A flag which marks the context as being locked.
-   *
-   * The styling context is constructed across an element template
-   * function as well as any associated hostBindings functions. When
-   * this occurs, the context itself is open to mutation and only once
-   * it has been flushed once then it will be locked for good (no extra
-   * bindings can be added to it).
+   * Whether or not to apply styling without use of context resolution
    */
-  Locked = 0b1,
+  HasMapBindings = 0b0000001,
 
   /**
-   * Whether or not to store the state between updates in a global storage map.
-   *
-   * This flag helps the algorithm avoid storing all state values temporarily in
-   * a storage map (that lives in `state.ts`). The flag is only flipped to true if
-   * and when an element contains style/class bindings that exist both on the
-   * template-level as well as within host bindings on the same element. This is a
-   * rare case, and a storage map is required so that the state values can be restored
-   * between the template code running and the host binding code executing.
+   * Whether or not to apply styling without use of context resolution
    */
-  PersistStateValues = 0b10,
+  HasPropBindings = 0b0000010,
+
+  /**
+   *
+   */
+  HasPropAndMapBindings = 0b0000011,
+
+  /**
+   * Whether or not to apply styling without use of context resolution
+   */
+  HasCollisions = 0b0000100,
+
+  /**
+   * Has Template Bindings
+   */
+  HasTemplateBindings = 0b0001000,
+
+  /**
+   * Has Host Bindings
+   */
+  HasHostBindings = 0b0010000,
+
+  /**
+   * A flag which marks the context as having template bindings be locked.
+   */
+  TemplateBindingsLocked = 0b0100000,
+
+  /**
+   * A flag which marks the context as having template bindings be locked.
+   */
+  HostBindingsLocked = 0b1000000,
 
   /** A Mask of all the configurations */
-  Mask = 0b11,
+  Mask = 0b1111111,
 
   /** Total amount of configuration bits used */
-  TotalBits = 2,
+  TotalBits = 7,
 }
 
 /**
- * An index of position and offset values used to natigate the `TStylingContext`.
+ * An index of position and offset values used to navigate the `TStylingContext`.
  */
 export const enum TStylingContextIndex {
-  InitialStylingValuePosition = 0,
-  ConfigPosition = 1,
-  TotalSourcesPosition = 2,
-  LastDirectiveIndexPosition = 3,
-
-  // index/offset values for map-based entries (i.e. `[style]`
-  // and `[class]` bindings).
-  MapBindingsPosition = 4,
-  MapBindingsConfigPosition = 4,
-  MapBindingsTemplateBitGuardPosition = 5,
-  MapBindingsHostBindingsBitGuardPosition = 6,
-  MapBindingsPropPosition = 7,
-  MapBindingsBindingsStartPosition = 8,
+  ConfigPosition = 0,
+  TotalSourcesPosition = 1,
+  InitialStylingValuePosition = 2,
+  ValuesStartPosition = 3,
 
   // each tuple entry in the context
   // (config, templateBitGuard, hostBindingBitGuard, prop, ...bindings||default-value)
@@ -397,8 +384,8 @@ export const enum TStylingContextPropConfigFlags {
  * A function used to apply or remove styling from an element for a given property.
  */
 export interface ApplyStylingFn {
-  (renderer: Renderer3|ProceduralRenderer3|null, element: RElement, prop: string,
-   value: string|null, bindingIndex?: number|null): void;
+  (renderer: Renderer3|ProceduralRenderer3|null, element: RElement, prop: string, value: any,
+   bindingIndex?: number|null): void;
 }
 
 /**
@@ -429,11 +416,11 @@ export interface StylingMapArray extends Array<{}|string|number|null> {
  * An index of position and offset points for any data stored within a `StylingMapArray` instance.
  */
 export const enum StylingMapArrayIndex {
-  /** The location of the raw key/value map instance used last to populate the array entries */
-  RawValuePosition = 0,
-
   /** Where the values start in the array */
   ValuesStartPosition = 1,
+
+  /** The location of the raw key/value map instance used last to populate the array entries */
+  RawValuePosition = 0,
 
   /** The size of each property/value entry */
   TupleSize = 2,
@@ -468,8 +455,9 @@ export const enum StylingMapArrayIndex {
  */
 export interface SyncStylingMapsFn {
   (context: TStylingContext, renderer: Renderer3|ProceduralRenderer3|null, element: RElement,
-   data: LStylingData, applyStylingFn: ApplyStylingFn, sanitizer: StyleSanitizeFn|null,
-   mode: StylingMapsSyncMode, targetProp?: string|null, defaultValue?: string|null): boolean;
+   data: LStylingData, sourceIndex: number, applyStylingFn: ApplyStylingFn,
+   sanitizer: StyleSanitizeFn|null, mode: StylingMapsSyncMode, targetProp?: string|null,
+   defaultValue?: boolean|string|null): boolean;
 }
 
 /**
@@ -487,4 +475,8 @@ export const enum StylingMapsSyncMode {
 
   /** Skip applying the target prop/value entry */
   SkipTargetProp = 0b100,
+
+  RecurseInnerMaps = 0b1000,
+
+  CheckValuesOnly = 0b10000,
 }

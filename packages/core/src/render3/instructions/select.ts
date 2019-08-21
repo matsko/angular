@@ -8,7 +8,7 @@
 import {assertDataInRange, assertGreaterThan} from '../../util/assert';
 import {executeCheckHooks, executeInitAndCheckHooks} from '../hooks';
 import {FLAGS, HEADER_OFFSET, InitPhaseState, LView, LViewFlags, TVIEW} from '../interfaces/view';
-import {getCheckNoChangesMode, getLView, setSelectedIndex, executeElementExitFn, resetActiveElementFlags} from '../state';
+import {executeElementExitFn, getCheckNoChangesMode, getLView, resetActiveElementFlags, setSelectedIndex} from '../state';
 import {resetStylingState} from '../styling_next/state';
 
 

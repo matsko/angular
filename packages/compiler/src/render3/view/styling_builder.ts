@@ -283,25 +283,6 @@ export class StylingBuilder {
   }
 
   /**
-   * Builds an instruction with all the expressions and parameters for `styling`.
-   *
-   * The instruction generation code below is used for producing the AOT statement code which is
-   * responsible for registering style/class bindings to an element.
-   */
-  buildStylingInstruction(sourceSpan: ParseSourceSpan|null, constantPool: ConstantPool):
-      StylingInstruction|null {
-    if (this.hasBindings) {
-      return {
-        sourceSpan,
-        allocateBindingSlots: 0,
-        reference: R3.styling,
-        params: () => [],
-      };
-    }
-    return null;
-  }
-
-  /**
    * Builds an instruction with all the expressions and parameters for `classMap`.
    *
    * The instruction data will contain all expressions for `classMap` to function
