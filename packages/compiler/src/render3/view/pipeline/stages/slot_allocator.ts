@@ -9,11 +9,25 @@ import * as cir from '../ir/create';
 import * as uir from '../ir/update';
 import {visitAllExpressions} from '../ir/update';
 import {ExpressionTransformer} from '../util/expression_transformer';
+import {BaseTemplateStage} from './base';
 
-export class SlotAllocatorTransform implements cir.Transform {
+export class SlotAllocationStage extends BaseTemplateStage<SlotAllocator, ExpressionSlotTransform> {
+  private slotMap = new Map<cir.Id, cir.DataSlot>();
+  private updateTransform = new ExpressionSlotTransform(this.slotMap);
+
+  constructor() { super(); }
+
+  protected makeCreateTransform(): SlotAllocator|null { return new SlotAllocator(this.slotMap); }
+
+  protected makeUpdateTransform() { return this.updateTransform; }
+
+  get expressionTransform(): uir.Transform { return new ExpressionSlotTransform(this.slotMap); }
+}
+
+class SlotAllocator implements cir.Transform {
   private slot = 0;
 
-  private constructor(private slotMap: Map<cir.Id, cir.DataSlot>) {}
+  constructor(private slotMap: Map<cir.Id, cir.DataSlot>) {}
 
   private allocateSlotFor(id: cir.Id): cir.DataSlot {
     if (this.slotMap.has(id)) {
@@ -33,16 +47,9 @@ export class SlotAllocatorTransform implements cir.Transform {
         break;
       case cir.Kind.Template:
         node.slot = this.allocateSlotFor(node.id);
-        node.create.applyTransform(new SlotAllocatorTransform(this.slotMap));
         break;
     }
     return node;
-  }
-
-  get expressionTransform(): uir.Transform { return new ExpressionSlotTransform(this.slotMap); }
-
-  static forTemplateRoot(): SlotAllocatorTransform {
-    return new SlotAllocatorTransform(new Map<cir.Id, cir.DataSlot>());
   }
 }
 

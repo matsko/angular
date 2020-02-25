@@ -5,7 +5,7 @@
 * Use of this source code is governed by an MIT-style license that can be
 * found in the LICENSE file at https://angular.io/license
 */
-import {SlotAllocatorTransform} from '@angular/compiler/src/render3/view/pipeline/stages/slot_allocator';
+import {SlotAllocationStage} from '@angular/compiler/src/render3/view/pipeline/stages/slot_allocator';
 
 import {parse} from '../../../../../src/render3/view/pipeline/input/template';
 import * as cir from '../../../../../src/render3/view/pipeline/ir/create';
@@ -36,9 +36,7 @@ describe('template parsing', () => {
     // tmpl.create.applyTransform(new SelfClosingElementTransform());
 
     NestedUpdateTransform.apply(tmpl, () => new VarNamesStage());
-    const slotter = SlotAllocatorTransform.forTemplateRoot();
-    tmpl.create.applyTransform(slotter);
-    NestedUpdateTransform.apply(tmpl, slotter.expressionTransform);
+    new SlotAllocationStage().transform(tmpl);
     new ExpressionTranslator().transform(tmpl);
 
     console.error('create:');

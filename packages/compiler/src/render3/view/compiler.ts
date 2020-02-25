@@ -28,9 +28,15 @@ import {Render3ParseResult} from '../r3_template_transform';
 import {prepareSyntheticListenerFunctionName, prepareSyntheticPropertyName, typeWithParameters} from '../util';
 
 import {R3ComponentDef, R3ComponentMetadata, R3DirectiveDef, R3DirectiveMetadata, R3HostMetadata, R3QueryMetadata} from './api';
+import {parse} from './pipeline/input/template';
+import {emitTemplateFunction} from './pipeline/output/template_function';
+import {ResolverStage} from './pipeline/stages/resolver';
+import {SlotAllocationStage} from './pipeline/stages/slot_allocator';
+import {VarNamesStage} from './pipeline/stages/var_names';
 import {MIN_STYLING_BINDING_SLOTS_REQUIRED, StylingBuilder, StylingInstructionCall} from './styling_builder';
 import {BindingScope, TemplateDefinitionBuilder, ValueConverter, makeBindingParser, prepareEventListenerParameters, renderFlagCheckIfStmt, resolveSanitizationFn} from './template';
 import {CONTEXT_NAME, DefinitionMap, RENDER_FLAGS, TEMPORARY_NAME, asLiteral, chainedInstruction, conditionallyCreateMapObjectLiteral, getQueryPredicate, temporaryAllocator} from './util';
+
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -173,28 +179,40 @@ export function compileComponentFromMetadata(
   const changeDetection = meta.changeDetection;
 
   const template = meta.template;
+  /*
   const templateBuilder = new TemplateDefinitionBuilder(
       constantPool, BindingScope.ROOT_SCOPE, 0, templateTypeName, null, null, templateName,
       directiveMatcher, directivesUsed, meta.pipes, pipesUsed, R3.namespaceHTML,
       meta.relativeContextFilePath, meta.i18nUseExternalIds);
 
   const templateFunctionExpression = templateBuilder.buildTemplateFunction(template.nodes, []);
-
   // We need to provide this so that dynamically generated components know what
   // projected content blocks to pass through to the component when it is instantiated.
   const ngContentSelectors = templateBuilder.getNgContentSelectors();
   if (ngContentSelectors) {
     definitionMap.set('ngContentSelectors', ngContentSelectors);
   }
+  */
+
+  const ir = parse(template.nodes);
+
+  (new ResolverStage(ir.scope)).transform(ir);
+  (new SlotAllocationStage()).transform(ir);
+  (new VarNamesStage()).transform(ir);
+
+  const templateFunctionExpression = emitTemplateFunction(ir.create, ir.update);
 
   // e.g. `decls: 2`
-  definitionMap.set('decls', o.literal(templateBuilder.getConstCount()));
+  // definitionMap.set('decls', o.literal(templateBuilder.getConstCount()));
+  definitionMap.set('decls', o.literal(0));
 
   // e.g. `vars: 2`
-  definitionMap.set('vars', o.literal(templateBuilder.getVarCount()));
+  // definitionMap.set('vars', o.literal(templateBuilder.getVarCount()));
+  definitionMap.set('vars', o.literal(0));
 
   // e.g. `consts: [['one', 'two'], ['three', 'four']]
-  const consts = templateBuilder.getConsts();
+  // const consts = templateBuilder.getConsts();
+  const consts: o.Expression[] = [];
   if (consts.length > 0) {
     definitionMap.set('consts', o.literalArr(consts));
   }
